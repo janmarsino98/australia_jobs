@@ -1,29 +1,19 @@
 import React from "react";
-import Navbar_option from "../atoms/Navbar_option";
-import MainButton from "../atoms/MainButton";
+import NavTextOption from "../atoms/NavtextOption";
+import NavIconImg from "../atoms/NavIconImg";
+import NavFirmName from "../atoms/NavFirmName";
 
-const Navbar = ({ navbar_options }) => {
+const Navbar = () => {
   return (
-    <div className="w-full border border-black flex justify-between py-3 mb-6 px-2 bg-white">
-      <div className="w-[40px]">
-        <img
-          src="https://www.bigbasket.com/media/uploads/p/xxl/40233064_1-kleeno-by-cello-swachh-grass-broom-high-quality-easy-to-use-blue.jpg"
-          alt=""
-        />
+    <div className="px-[40px] py-[12px] w-full bg-main-white-bg flex flex-row border border-b-dark-white items-center">
+      <div className="flex flex-row gap-[16px] h-full items-center">
+        <NavIconImg img_url="https://st2.depositphotos.com/1768926/7866/v/950/depositphotos_78666192-stock-illustration-a-logo-sample-logo-for.jpg" />
+        <NavFirmName name="iJob" />
       </div>
-      <div className="flex flex-row w-max justify-end gap-28 mr-5">
-        {navbar_options.map((navbar_option, index) => (
-          <Navbar_option
-            text={navbar_option.text}
-            link={navbar_option.link}
-            isActive={navbar_option.isActive}
-            key={index}
-          />
-        ))}
-      </div>
-      <div className="flex flex-row w-max gap-5">
-        <MainButton text="Search Jobs" type="blue"></MainButton>
-        <MainButton text="Log In / Join" type="white"></MainButton>
+      <div className="w-full justify-end flex flex-row items-center gap-[36px]">
+        <NavTextOption text="Find Jobs" />
+        <NavTextOption text="Company Reviews" />
+        <NavTextOption text="Find Salaries" />
       </div>
     </div>
   );

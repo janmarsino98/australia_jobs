@@ -1,28 +1,18 @@
 import React from "react";
-import RemoteTag from "../atoms/RemoteTag";
-import SkillTag from "../atoms/SkillTag";
 
-const JobCard = ({ title, city, state, remote, description, skills, logo }) => {
+const JobCard = ({ title, minSalary, maxSalary, imgSrc }) => {
   return (
-    <div className="flex w-full flex-col p-3 border h-max border-light-blue bg-light-gray rounded-md my-2 bg-white ">
-      <div className="flex mb-2 relative w-full">
-        <p className="text-[21px]">
-          <span className="font-bold">{title}</span>
-          {city && state && ` in ${city}, ${state}`}
-        </p>
-        <div className="absolute top-0 right-0 h-[40px] w-[40px] border-red-500">
-          <img src={logo} alt="" />
-        </div>
+    <div className="flex flex-col">
+      <div className="w-[223px] h-[125px] rounded-[12px]">
+        <img
+          src={imgSrc}
+          alt="Job Card Img"
+          className="h-full w-full object-cover rounded-[12px]"
+        />
       </div>
-      <div className="mb-2">
-        <RemoteTag text="Remote"></RemoteTag>
-      </div>
-      <div className="mb-2">{description}</div>
-      <div className="flex flex-row gap-2">
-        {skills &&
-          skills.map((skill, index) => (
-            <SkillTag key={index} text={skill.name}></SkillTag>
-          ))}
+      <div className="text-[16px] mt-[12px]">{title}</div>
+      <div className=" text-searchbar-text">
+        {`$${minSalary}-$${maxSalary}/month`}
       </div>
     </div>
   );

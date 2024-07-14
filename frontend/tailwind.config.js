@@ -7,13 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        "main-blue": "#2176eb",
-        "main-light-blue": "#4487d2",
-        "main-bg": "#f9f9f9",
-        "remote-tag-border": "#56c69d",
-        "remote-tag-text": "#68b89a",
-        "skill-tag-bg": "#F5F6F8",
-        "skill-tag-text": "#939494",
+        "main-text": "#0D141C",
+        "main-white-bg": "#F7FAFC",
+        "dark-white": "#E8EDF2",
+        "searchbar-text": "#4F7396",
+        "navbar-border": "#E8EDF2"
       }
     },
   },
