@@ -2,7 +2,7 @@ import React from "react";
 
 const JobCard = ({ title, minSalary, maxSalary, imgSrc }) => {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col my-[15px]">
       <div className="w-[223px] h-[125px] rounded-[12px]">
         <img
           src={imgSrc}

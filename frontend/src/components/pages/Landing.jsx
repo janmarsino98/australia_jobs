@@ -3,6 +3,7 @@ import Navbar from "../molecules/Navbar";
 import SearchBox from "../molecules/SearchBox";
 import JobCard from "../molecules/JobCard";
 import JobRow from "../organisms/JobRow";
+import LocationDisplayer from "../molecules/LocationDisplayer";
 
 const Landing = () => {
   return (
@@ -15,6 +16,7 @@ const Landing = () => {
           </h1>
           <div className="pl-[16px]">
             <SearchBox></SearchBox>
+            <LocationDisplayer></LocationDisplayer>
             <JobRow
               jobCards={[
                 {
