@@ -2,6 +2,7 @@ import React from "react";
 import NavTextOption from "../atoms/NavtextOption";
 import NavIconImg from "../atoms/NavIconImg";
 import NavFirmName from "../atoms/NavFirmName";
+import NavProfileIcon from "../atoms/NavProfileIcon";
 
 const Navbar = () => {
   return (
@@ -14,6 +15,13 @@ const Navbar = () => {
         <NavTextOption text="Find Jobs" />
         <NavTextOption text="Company Reviews" />
         <NavTextOption text="Find Salaries" />
+      </div>
+      <div className="flex flex-row gap-[32px] ml-[32px]">
+        <NavProfileIcon
+          profImg={
+            "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+          }
+        ></NavProfileIcon>
       </div>
     </div>
   );

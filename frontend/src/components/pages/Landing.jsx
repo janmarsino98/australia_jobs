@@ -4,6 +4,7 @@ import SearchBox from "../molecules/SearchBox";
 import JobCard from "../molecules/JobCard";
 import JobRow from "../organisms/JobRow";
 import LocationDisplayer from "../molecules/LocationDisplayer";
+import MainFooter from "../molecules/MainFooter";
 
 const Landing = () => {
   return (
@@ -77,6 +78,7 @@ const Landing = () => {
                 },
               ]}
             ></JobRow>
+            <MainFooter></MainFooter>
           </div>
         </div>
       </div>
