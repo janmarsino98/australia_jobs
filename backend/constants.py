@@ -1,0 +1,1 @@
+DEFAULT_AVATAR = "https://www.testhouse.net/wp-content/uploads/2021/11/default-avatar.jpg"
