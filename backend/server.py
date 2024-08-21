@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_pymongo import PyMongo, ObjectId
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -7,17 +7,28 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import constants as c
+import redis
+from flask_session import Session
+from datetime import timedelta
+import base64
 
 load_dotenv()
 app = Flask(__name__)
 app.config['MONGO_URI'] = os.getenv('MONGO_URI')
 bcrypt = Bcrypt(app)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 mongo = PyMongo(app)
 users_db = mongo.db.users
 jobtypes_db = mongo.db.job_types
 jobs_db = mongo.db.jobs
+app.config['SECRET_KEY'] = "helloW0rld!"
+app.config["SESSION_TYPE"] = "redis"
+app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_USE_SIGNER"] = True
+app.config["SESSION_REDIS"] = redis.from_url("redis://127.0.0.1:6379")
+
+server_session = Session(app)
 
 @app.route("/user", methods=["POST"])
 def add_user():
@@ -182,6 +193,48 @@ def get_jobs():
         result.append(job)
         
     return jsonify(result), 200
+
+@app.route("/login", methods=["POST"])
+def login_user():
+    data = request.get_json()
+    email = data["email"]
+    password = data["password"]
+    
+    user = users_db.find_one({"email": email})
+    
+    if not user:
+        return jsonify({"error": "Check your email and password"}), 401
+    
+    if not bcrypt.check_password_hash(user["password"], password):
+        return jsonify({"error": "Check your email and password"}), 401
+    
+    session["user_id"] = str(user["_id"])
+    print("Session after login")
+    print(session)
+    return jsonify({
+        "id": str(user["_id"]),
+        "email": user["email"]
+        }), 200
+    
+
+@app.route("/@me", methods=["GET"])
+def get_current_user():
+    print("Session before me: ")
+    print(session)
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return jsonify({"error":"Unauthorized"}), 401
+    
+    user = users_db.find_one({"_id": ObjectId(user_id)})
+
+    user["_id"] = str(user["_id"])
+    user["password"] = ""
+    
+    return jsonify(
+        user
+    )
+
 
 
 if __name__ == '__main__':
