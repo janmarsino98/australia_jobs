@@ -11,17 +11,37 @@ import redis
 from flask_session import Session
 from datetime import timedelta
 import base64
+import importlib
+
+blueprints = []
+# Get the current directory path of the routes folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Iterate over all Python files in the routes folder
+for filename in os.listdir(current_dir+"/routes"):
+    if filename.endswith('.py') and filename != '__init__.py':
+        # Get the module name without the .py extension
+        module_name = filename[:-3]
+        # Dynamically import the module
+        module = importlib.import_module(f'routes.{module_name}')
+        # Check if the module has a blueprint (commonly named 'bp')
+        if hasattr(module, 'bp'):
+            # Add the blueprint to the list
+            blueprints.append(getattr(module, 'bp'))
 
 load_dotenv()
 app = Flask(__name__)
 app.config['MONGO_URI'] = os.getenv('MONGO_URI')
 bcrypt = Bcrypt(app)
 CORS(app, supports_credentials=True)
+for bp in blueprints:
+    app.register_blueprint(bp)
 
 mongo = PyMongo(app)
 users_db = mongo.db.users
 jobtypes_db = mongo.db.job_types
 jobs_db = mongo.db.jobs
+companies_db = mongo.db.companies
 app.config['SECRET_KEY'] = "helloW0rld!"
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_PERMANENT"] = False
@@ -50,6 +70,14 @@ def add_user():
         return jsonify({"error": "Password is required"}), 400
     if not user_type:
         return jsonify({"error": "User type is required"}), 400
+    
+    registered_user = users_db.find_one({"username": username})
+    if registered_user:
+        return jsonify({"error": "Username already in use!"}), 409
+    registered_email = users_db.find_one({"email": email})
+    if registered_email:
+        return jsonify({"error": "Email already in use!"}), 409
+    
 
     users_db.insert_one({
         "username": username,
@@ -236,6 +264,36 @@ def get_current_user():
     )
 
 
+@app.route("/company", methods=["POST"])
+def add_company():
+    data = request.get_json()
+    name = data["name"]
+    email = data["email"]
+    password = data["password"]
+
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+    
+    registered_email = companies_db.find_one({"email": email})
+    if registered_email:
+        return jsonify({"error": "Email already in use"}), 409
+    
+    companies_db.insert_one({
+        "name": name,
+        "email": email,
+        "password": bcrypt.generate_password_hash(data["password"]),
+        "created_at": datetime.utcnow(),
+        "avatar": c.DEFAULT_COMPANY_AVATAR
+        })
+    
+    return jsonify({"message": "Company created successfully!"}), 200
+
+
+    
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -17,6 +17,9 @@ const JobPage = () => {
             <div className="flex flex-col gap-3 mt-5">
               <MiniJobCard
                 jobTitle={"Waiter"}
+                jobImg={
+                  "https://s3.pixers.pics/pixers/160/FO/57/40/61/06/160_FO57406106_0055f01a13b952179d8bd7db61b6a0ba.jpg"
+                }
                 jobType={"Full Time"}
                 jobSchedule={"Night"}
               ></MiniJobCard>

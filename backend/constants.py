@@ -1,1 +1,2 @@
 DEFAULT_AVATAR = "https://www.testhouse.net/wp-content/uploads/2021/11/default-avatar.jpg"
+DEFAULT_COMPANY_AVATAR = r"C:\Users\janma\Desktop\Programacio\australia_jobs\frontend\src\imgs\companyLogos\defaultCompanyLogo.png"
