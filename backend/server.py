@@ -21,8 +21,15 @@ def create_app():
     server_session.init_app(app)
     CORS(app, supports_credentials=True)
 
-    from auth.auth import auth_bp  # Import after mongo is initialized
+    from auth.auth import auth_bp
+    from users.users import users_bp  
+    from jobtypes.jobtypes import jobtypes_bp  
+    from jobs.jobs import jobs_bp  
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(users_bp, url_prefix='/users')
+    app.register_blueprint(jobtypes_bp, url_prefix='/jobtypes')
+    app.register_blueprint(jobs_bp, url_prefix='/jobs')
+    
 
     return app
 
