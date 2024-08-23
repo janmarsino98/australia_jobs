@@ -1,19 +1,36 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Navbar from "../molecules/Navbar";
 import SearchBox from "../molecules/SearchBox";
 import JobCard from "../molecules/JobCard";
 import JobRow from "../organisms/JobRow";
 import LocationDisplayer from "../molecules/LocationDisplayer";
 import MainFooter from "../molecules/MainFooter";
+import httpClient from "../../httpClient";
+import { useState } from "react";
 
 const Landing = () => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const resp = await httpClient.get("http://localhost:5000/auth/@me");
+        setUser(resp.data);
+      } catch (e) {
+        console.log(e);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <div>
       <div className="font-sans flex flex-col items-center">
-        <Navbar></Navbar>
+        <Navbar user={user}></Navbar>
         <div className="flex flex-col max-w-[960px] my-[20px]">
           <h1 className="text-[32px] font-bold ml-[16px] mb-[16px]">
-            Find Jobs Near You
+            {`${user && user.name} Find Jobs Near You`}
           </h1>
           <div className="pl-[16px]">
             <SearchBox></SearchBox>
