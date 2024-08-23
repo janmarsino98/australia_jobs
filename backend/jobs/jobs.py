@@ -44,7 +44,7 @@ def add_job():
     return jsonify({"error": "Could not insert job"}), 400
 
 @jobs_bp.route("/get_one", methods=["GET"])
-def get_job():
+def get_one_job():
     data = request.get_json()
     job_id = data["job_id"]
     if not job_id:
@@ -106,3 +106,23 @@ def delete_job():
     
     else:
         return jsonify({"message": "No jobs removed."}), 200
+    
+    
+@jobs_bp.route("/get")
+def get_jobs():
+    job_type = request.args.get("type")
+    search_parameters = {}
+    if job_type:
+        job_type_list = job_type.split(",")
+        search_parameters["jobtype"] = {"$in": job_type_list}
+    
+    jobs_to_retrieve = jobs_db.find(search_parameters)
+    final_jobs_to_retrieve = []
+    for job in jobs_to_retrieve:
+        job["_id"] = str(job["_id"])
+        final_jobs_to_retrieve.append(job)
+        
+    return jsonify(final_jobs_to_retrieve)
+
+
+

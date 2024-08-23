@@ -11,7 +11,9 @@ export default {
         "main-white-bg": "#F7FAFC",
         "dark-white": "#E8EDF2",
         "searchbar-text": "#4F7396",
-        "navbar-border": "#E8EDF2"
+        "navbar-border": "#E8EDF2",
+        "pill-bg": "#EFF4FF",
+        "pill-text": "#2557D6",
       }
     },
   },

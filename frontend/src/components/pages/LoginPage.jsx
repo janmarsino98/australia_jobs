@@ -4,6 +4,7 @@ import { MdOutlineLock } from "react-icons/md";
 import FormInput from "../molecules/FormInput";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../../httpClient";
+import main_logo from "../../imgs/page_logo.png";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -43,7 +44,7 @@ const LoginPage = () => {
         <div className="w-full flex flex-col justify-center items-center">
           <div className="w-[80px] flex items-center justify-center h-[80px] overflow-hidden">
             <img
-              src={""}
+              src={main_logo}
               alt="No img"
               className="rounded-full object-fill h-full w-full"
             />

@@ -1,10 +1,37 @@
-import React from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../molecules/Navbar";
 import SearchBox from "../molecules/SearchBox";
 import LocationDisplayer from "../molecules/LocationDisplayer";
 import MiniJobCard from "../molecules/MiniJobCard";
+import CategoryChooser from "../molecules/CategoryChooser";
+import httpClient from "../../httpClient";
 
 const JobPage = () => {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleCategoryChange = async (selectedCategories) => {
+    try {
+      setLoading(true);
+      const categoryQuery = selectedCategories.join(",");
+      const response = await httpClient.get(
+        `http://localhost:5000/jobs/get?type=${categoryQuery}`
+      );
+      setJobs(response.data);
+      setError(null);
+    } catch (error) {
+      console.error("Error while fetching jobs: ", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial job fetch (optional)
+    handleCategoryChange([]);
+  }, []);
+
   return (
     <div>
       <div className="font-sans flex flex-col items-center">
@@ -12,17 +39,20 @@ const JobPage = () => {
         <div className="flex flex-col w-full">
           <div className="mx-20 mt-[15px]">
             <SearchBox></SearchBox>
-            <LocationDisplayer />
+            <div className="flex felx-row gap-4 items-center justify-between">
+              <LocationDisplayer />
+              <CategoryChooser onCategoryChange={handleCategoryChange} />
+            </div>
             <h1 className="text-[24px] font-bold mt-[30px]">Cleaner jobs</h1>
             <div className="flex flex-col gap-3 mt-5">
-              <MiniJobCard
-                jobTitle={"Waiter"}
-                jobImg={
-                  "https://s3.pixers.pics/pixers/160/FO/57/40/61/06/160_FO57406106_0055f01a13b952179d8bd7db61b6a0ba.jpg"
-                }
-                jobType={"Full Time"}
-                jobSchedule={"Night"}
-              ></MiniJobCard>
+              {jobs.map((job) => (
+                <MiniJobCard
+                  key={job._id}
+                  jobTitle={job.jobtype}
+                  jobImg={job.avatar}
+                  jobSchedule={job.remuneration_period}
+                />
+              ))}
             </div>
           </div>
         </div>
