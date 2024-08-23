@@ -8,12 +8,14 @@ import main_logo from "../../imgs/page_logo.png";
 const Navbar = () => {
   return (
     <div className="px-[40px] py-[12px] w-full bg-main-white-bg flex flex-row border border-b-dark-white items-center">
-      <div className="flex flex-row gap-[16px] h-full items-center">
-        <NavIconImg img_url={main_logo} />
-        <NavFirmName name="AustralianJobs" />
-      </div>
+      <a href="/" className="p-2">
+        <div className="flex flex-row gap-[16px] h-full items-center">
+          <NavIconImg img_url={main_logo} />
+          <NavFirmName name="AustralianJobs" />
+        </div>
+      </a>
       <div className="w-full justify-end flex flex-row items-center gap-[36px]">
-        <NavTextOption text="Find Jobs" />
+        <NavTextOption text="Find Jobs" path={"/jobs"} />
         <NavTextOption text="Company Reviews" />
         <NavTextOption text="Find Salaries" />
       </div>
