@@ -25,10 +25,14 @@ def create_app():
     from users.users import users_bp  
     from jobtypes.jobtypes import jobtypes_bp  
     from jobs.jobs import jobs_bp  
+    from states.states import states_bp  
+    from cities.cities import cities_bp  
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(users_bp, url_prefix='/users')
     app.register_blueprint(jobtypes_bp, url_prefix='/jobtypes')
     app.register_blueprint(jobs_bp, url_prefix='/jobs')
+    app.register_blueprint(states_bp, url_prefix='/states')
+    app.register_blueprint(cities_bp, url_prefix='/cities')
     
 
     return app
