@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import { useState } from "react";
 
@@ -34,6 +34,13 @@ const FormInput = ({ inputType, label, Icon, onChange }) => {
       </div>
     </div>
   );
+};
+
+FormInput.propTypes = {
+  inputType: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  Icon: PropTypes.string.isRequired,
+  onCHnage: PropTypes.func.isRequired,
 };
 
 export default FormInput;

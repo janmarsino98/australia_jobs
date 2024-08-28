@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
 import httpClient from "../../httpClient";
 import Category_Pill from "../atoms/Category_Pill";
+import PropTypes from "prop-types";
 
 const CategoryChooser = ({ onCategoryChange }) => {
   const [categories, setCategories] = useState([]);
@@ -53,6 +53,10 @@ const CategoryChooser = ({ onCategoryChange }) => {
       <Category_Pill name={"+"} value={"+"} />
     </div>
   );
+};
+
+CategoryChooser.propTypes = {
+  onCategoryChange: PropTypes.func.isRequired,
 };
 
 export default CategoryChooser;

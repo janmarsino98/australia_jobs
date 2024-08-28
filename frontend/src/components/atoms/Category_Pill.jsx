@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 
 const Category_Pill = ({ name, handleClick, value }) => {
   const [hover, setHover] = useState(null);
@@ -19,6 +20,12 @@ const Category_Pill = ({ name, handleClick, value }) => {
       <span>{name}</span>
     </button>
   );
+};
+
+Category_Pill.propTypes = {
+  name: PropTypes.string.isRequired,
+  handleClick: PropTypes.func.isRequired,
+  value: PropTypes.string.isRequired,
 };
 
 export default Category_Pill;

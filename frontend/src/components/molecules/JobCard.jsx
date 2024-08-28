@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const JobCard = ({ title, minSalary, maxSalary, imgSrc }) => {
   return (
@@ -16,6 +16,13 @@ const JobCard = ({ title, minSalary, maxSalary, imgSrc }) => {
       </div>
     </div>
   );
+};
+
+JobCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  minSalary: PropTypes.number.isRequired,
+  maxSalary: PropTypes.number.isRequired,
+  imgSrc: PropTypes.string.isRequired,
 };
 
 export default JobCard;

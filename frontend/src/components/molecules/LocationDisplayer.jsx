@@ -1,4 +1,3 @@
-import React from "react";
 import LocationIcon from "../atoms/LocationIcon";
 
 const LocationDisplayer = () => {

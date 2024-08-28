@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const MiniJobCard = ({ jobImg, jobTitle, jobType, jobSchedule }) => {
   return (
@@ -14,6 +14,13 @@ const MiniJobCard = ({ jobImg, jobTitle, jobType, jobSchedule }) => {
       </div>
     </div>
   );
+};
+
+MiniJobCard.propTypes = {
+  jobImg: PropTypes.string,
+  jobTitle: PropTypes.string.isRequired,
+  jobType: PropTypes.string.isRequired,
+  jobShedule: PropTypes.string.isRequired,
 };
 
 export default MiniJobCard;

@@ -4,7 +4,7 @@ import { MdOutlineLock } from "react-icons/md";
 import FormInput from "../molecules/FormInput";
 import { useNavigate } from "react-router-dom";
 import httpClient from "../../httpClient";
-import main_logo from "../../imgs/page_logo.png";
+import main_logo from "../../imgs/logo.png";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");

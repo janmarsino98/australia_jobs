@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const NavTextOption = ({ text, path }) => {
   return (
@@ -8,6 +8,11 @@ const NavTextOption = ({ text, path }) => {
       </a>
     </div>
   );
+};
+
+NavTextOption.propTypes = {
+  text: PropTypes.string.isRequired,
+  path: PropTypes.string.isRequired,
 };
 
 export default NavTextOption;

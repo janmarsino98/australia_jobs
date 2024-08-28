@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 const NavProfileIcon = ({ profImg }) => {
   return (
@@ -10,6 +10,10 @@ const NavProfileIcon = ({ profImg }) => {
       />
     </div>
   );
+};
+
+NavProfileIcon.propTypes = {
+  profImg: PropTypes.string.isRequired,
 };
 
 export default NavProfileIcon;

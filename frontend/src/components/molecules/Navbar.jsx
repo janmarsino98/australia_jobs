@@ -3,7 +3,7 @@ import NavTextOption from "../atoms/NavtextOption";
 import NavIconImg from "../atoms/NavIconImg";
 import NavFirmName from "../atoms/NavFirmName";
 import NavProfileIcon from "../atoms/NavProfileIcon";
-import main_logo from "../../imgs/page_logo.png";
+import main_logo from "../../imgs/logo.png";
 
 const Navbar = () => {
   return (
