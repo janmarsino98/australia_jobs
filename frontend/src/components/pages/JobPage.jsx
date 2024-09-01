@@ -5,6 +5,7 @@ import LocationDisplayer from "../molecules/LocationDisplayer";
 import MiniJobCard from "../molecules/MiniJobCard";
 import CategoryChooser from "../molecules/CategoryChooser";
 import httpClient from "../../httpClient";
+import MainHeader from "../molecules/MainHeader";
 
 const JobPage = () => {
   const [jobs, setJobs] = useState([]);
@@ -34,8 +35,8 @@ const JobPage = () => {
 
   return (
     <div>
-      <div className="font-sans flex flex-col items-center">
-        <Navbar></Navbar>
+      <div className="flex flex-col min-h-screen bg-white">
+        <MainHeader />
         <div className="flex flex-col w-full">
           <div className="mx-20 mt-[15px]">
             <SearchBox></SearchBox>

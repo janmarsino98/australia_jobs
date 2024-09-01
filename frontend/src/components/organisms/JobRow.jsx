@@ -22,13 +22,13 @@ const JobRow = ({ jobCards }) => {
 JobRow.propTypes = {
   jobCards: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-      title: PropTypes.string.isRequired,
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      title: PropTypes.string,
       minSalary: PropTypes.number,
       maxSalary: PropTypes.number,
       imgSrc: PropTypes.string,
     })
-  ).isRequired,
+  ),
 };
 
 export default JobRow;

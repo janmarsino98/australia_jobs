@@ -12,7 +12,7 @@ const NavTextOption = ({ text, path }) => {
 
 NavTextOption.propTypes = {
   text: PropTypes.string.isRequired,
-  path: PropTypes.string.isRequired,
+  path: PropTypes.string,
 };
 
 export default NavTextOption;

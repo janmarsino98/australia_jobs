@@ -1,6 +1,7 @@
 import httpClient from "../../httpClient";
 import Category_Pill from "../atoms/Category_Pill";
 import PropTypes from "prop-types";
+import { useState, useEffect } from "react";
 
 const CategoryChooser = ({ onCategoryChange }) => {
   const [categories, setCategories] = useState([]);
