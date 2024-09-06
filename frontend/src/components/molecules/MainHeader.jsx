@@ -39,7 +39,7 @@ const MainHeader = () => {
           >
             Job Seekers
           </Link>
-          {["/jobseekers", "/jobspage"].includes(location.pathname) && (
+          {["/jobseekers", "/jobspage", "/job"].includes(location.pathname) && (
             <div className="w-full border border-blue-500 absolute -bottom-1 right-1/2 left-1/2 transform -translate-x-1/2 rounded-full" />
           )}
         </div>

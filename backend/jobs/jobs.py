@@ -3,6 +3,9 @@ from extensions import mongo, bcrypt  # Import from extensions
 from flask_pymongo import ObjectId
 from datetime import datetime
 import constants as c
+import string
+from slugify import slugify
+import random
 
 jobs_bp = Blueprint("jobs_bp", __name__)
 jobs_db = mongo.db.jobs
@@ -32,6 +35,8 @@ def add_job():
     if not jobtype:
         return jsonify({"error": "Job jobtype is mandatory"}), 400
     
+    slug = create_slug_with_code(title, city)
+    
     result = jobs_db.insert_one({
         "title": title,
         "description": description,
@@ -41,7 +46,8 @@ def add_job():
         "shift": shift,
         "jobtype": jobtype,
         "location": city,
-        "created_at": datetime.now().isoformat()
+        "created_at": datetime.now().isoformat(),
+        "slug": slug,
     })
     
     if result.inserted_id:
@@ -151,3 +157,35 @@ def get_jobs():
 def delete_all_jobs():
     r = jobs_db.delete_many({})
     return jsonify({"message": "Deleted all jobs"}), 200
+
+
+@jobs_bp.route("/add_slug", methods=["PUT"])
+def add_slug():
+    jobs = jobs_db.find({})
+    for job in jobs:
+        title = ""
+        location =""
+        try:
+            title = job["title"]
+            location = job["location"]
+        except:
+            print(job)
+        if title and location:
+            slug = create_slug_with_code(title, location)
+            jobs_db.update_one({
+                "_id": job["_id"]
+            }, {"$set": {"slug": slug}})
+            print(f"Updated job {title} with slug {slug}")
+    
+        else:
+            print(f"Unable to slugify job {title}")
+            
+    return jsonify({"message": "Task slugs added correctly!"})  
+    
+def generate_random_code(length=6):
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+def create_slug_with_code(job_title, location):
+    base_slug = slugify(f"{job_title} {location}")
+    random_code = generate_random_code()
+    return f"{base_slug}-{random_code}"

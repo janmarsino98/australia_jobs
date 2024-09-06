@@ -8,6 +8,7 @@ import "primereact/resources/themes/lara-light-cyan/theme.css";
 import JobSeekersPage from "./components/pages/JobSeekersPage";
 import AboutPage from "./components/pages/AboutPage";
 import JobsPage from "./components/pages/JobsPage";
+import Job from "./components/pages/Job";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/jobseekers" element={<JobSeekersPage />}></Route>
           <Route path="/about" element={<AboutPage />}></Route>
           <Route path="/jobspage" element={<JobsPage />}></Route>
+          <Route path="/job" element={<Job />}></Route>
         </Routes>
       </BrowserRouter>
     </PrimeReactProvider>
