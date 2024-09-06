@@ -16,6 +16,8 @@ def add_job():
     remuneration_period = data["remuneration_period"]
     firm = data["firm"]
     jobtype = data["jobtype"]
+    shift = data["shift"]
+    city = data["location"]["city"]
     
     if not title:
         return jsonify({"error": "Job title is mandatory"}), 400
@@ -36,7 +38,10 @@ def add_job():
         "remuneration_amount": remuneration_amount,
         "remuneration_period": remuneration_period,
         "firm": firm,
-        "jobtype": jobtype
+        "shift": shift,
+        "jobtype": jobtype,
+        "location": city,
+        "created_at": datetime.now().isoformat()
     })
     
     if result.inserted_id:
@@ -108,15 +113,32 @@ def delete_job():
         return jsonify({"message": "No jobs removed."}), 200
     
     
-@jobs_bp.route("/get")
+@jobs_bp.route("/get", methods=["GET"])
 def get_jobs():
-    job_type = request.args.get("type")
+
+    job_title = request.args.get("title", "")
+    location = request.args.get("location", "")
+    job_type = request.args.get("type", "")
+
     search_parameters = {}
+
+    if job_title:
+        search_parameters["$or"] = [
+            {"title": {"$regex": job_title, "$options": "i"}},
+            {"description": {"$regex": job_title, "$options": "i"}}
+        ]
+        
+    if location:
+        location_list = location.split(",")
+        search_parameters["location"] = {"$in": location_list}
+
+
     if job_type:
         job_type_list = job_type.split(",")
         search_parameters["jobtype"] = {"$in": job_type_list}
-    
+    print(search_parameters)
     jobs_to_retrieve = jobs_db.find(search_parameters)
+    
     final_jobs_to_retrieve = []
     for job in jobs_to_retrieve:
         job["_id"] = str(job["_id"])
@@ -125,4 +147,7 @@ def get_jobs():
     return jsonify(final_jobs_to_retrieve)
 
 
-
+@jobs_bp.route("/delete_all", methods=["DELETE"])
+def delete_all_jobs():
+    r = jobs_db.delete_many({})
+    return jsonify({"message": "Deleted all jobs"}), 200

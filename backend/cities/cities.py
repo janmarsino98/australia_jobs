@@ -24,3 +24,14 @@ def get_all_cities():
         city["_id"] = str(city["_id"])
         final_cities.append(city)
     return jsonify(final_cities)
+
+@cities_bp.route("get_main", methods=["GET"])
+def get_main_cities():
+    cities = ["Sydney", "Melbourne", "Brisbane", "Canberra"]
+    result = cities_db.find({"city": {"$in": cities}})
+    final_result = []
+    for city in result:
+        city["_id"] = str(city["_id"])
+        final_result.append(city)
+        
+    return jsonify(final_result)

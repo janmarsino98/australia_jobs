@@ -40,7 +40,7 @@ export default function JobSeekersPage() {
                 icon: BriefcaseBusiness,
                 description:
                   "Explore tailored job opportunities and take the next step in your career.",
-                href: "/jobs",
+                href: "/jobspage",
               },
               {
                 title: "Review your resume",

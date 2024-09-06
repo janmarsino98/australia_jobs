@@ -1,11 +1,20 @@
 import logo from "../../imgs/logo.png";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const MainHeader = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    navigate("/main");
+  };
+
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-gray-100 h-[60px]">
-      <div className="flex items-center space-x-2">
+      <div
+        className="flex items-center space-x-2 cursor-pointer"
+        onClick={handleLogoClick}
+      >
         <div className=" object-cover rounded-full h-[30px] w-[30px]">
           <img src={logo} alt="" />
         </div>
@@ -30,7 +39,7 @@ const MainHeader = () => {
           >
             Job Seekers
           </Link>
-          {location.pathname === "/jobseekers" && (
+          {["/jobseekers", "/jobspage"].includes(location.pathname) && (
             <div className="w-full border border-blue-500 absolute -bottom-1 right-1/2 left-1/2 transform -translate-x-1/2 rounded-full" />
           )}
         </div>
