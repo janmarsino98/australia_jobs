@@ -1,6 +1,6 @@
-import React from "react";
 import JobCard from "../molecules/JobCard";
-let count = 0;
+import PropTypes from "prop-types";
+
 const JobRow = ({ jobCards }) => {
   return (
     <div className="flex flex-wrap pt-[16px] gap-[12px] justify-around">
@@ -17,6 +17,18 @@ const JobRow = ({ jobCards }) => {
       })}
     </div>
   );
+};
+
+JobRow.propTypes = {
+  jobCards: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      title: PropTypes.string,
+      minSalary: PropTypes.number,
+      maxSalary: PropTypes.number,
+      imgSrc: PropTypes.string,
+    })
+  ),
 };
 
 export default JobRow;
