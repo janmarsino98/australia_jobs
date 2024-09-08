@@ -9,6 +9,8 @@ const MainHeader = () => {
     navigate("/main");
   };
 
+  const isJobsPath = location.pathname.startsWith("/job");
+
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-gray-100 h-[60px]">
       <div
@@ -18,7 +20,7 @@ const MainHeader = () => {
         <div className=" object-cover rounded-full h-[30px] w-[30px]">
           <img src={logo} alt="" />
         </div>
-        <span className="text-xl font-semibold text-gray-800">AusJobs</span>
+        <span className="text-xl font-semibold text-gray-800">KickStart</span>
       </div>
       <nav className="space-x-4 flex flex-row">
         <div className="flex relative">
@@ -39,7 +41,7 @@ const MainHeader = () => {
           >
             Job Seekers
           </Link>
-          {["/jobseekers", "/jobspage", "/job"].includes(location.pathname) && (
+          {isJobsPath && (
             <div className="w-full border border-blue-500 absolute -bottom-1 right-1/2 left-1/2 transform -translate-x-1/2 rounded-full" />
           )}
         </div>

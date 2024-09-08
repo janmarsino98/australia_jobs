@@ -18,14 +18,17 @@ import {
 } from "../../components/ui/select";
 import { Search, MapPin, Briefcase, Clock, DollarSign } from "lucide-react";
 import MainHeader from "../molecules/MainHeader";
+import { useNavigate } from "react-router-dom";
 
 export default function JobsPage() {
   const [cities, setCities] = useState([]);
-  const [jobs, setJobs] = useState([]); // Holds job listings
+  const [jobs, setJobs] = useState([]);
   const [searchParams, setSearchParams] = useState({
     title: "",
     location: "",
   });
+
+  const navigate = useNavigate();
 
   const fetchCities = async () => {
     try {
@@ -61,6 +64,10 @@ export default function JobsPage() {
   const handleSearch = () => {
     fetchJobs(searchParams.title, searchParams.location);
     console.log(`The current params are: ${searchParams}`);
+  };
+
+  const handleViewJobClick = (link) => {
+    navigate(`/job/${link}`);
   };
 
   return (
@@ -146,7 +153,10 @@ export default function JobsPage() {
                         {job.remuneration_amount} / {job.remuneration_period}
                       </div>
                     </div>
-                    <Button className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white">
+                    <Button
+                      className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={() => handleViewJobClick(job.slug)}
+                    >
                       View Job
                     </Button>
                   </CardContent>

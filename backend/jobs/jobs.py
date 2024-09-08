@@ -7,6 +7,7 @@ import string
 from slugify import slugify
 import random
 
+
 jobs_bp = Blueprint("jobs_bp", __name__)
 jobs_db = mongo.db.jobs
 
@@ -189,3 +190,13 @@ def create_slug_with_code(job_title, location):
     base_slug = slugify(f"{job_title} {location}")
     random_code = generate_random_code()
     return f"{base_slug}-{random_code}"
+
+
+@jobs_bp.route("/<slug>", methods= ["GET"])
+def get_job_by_slug(slug):
+    job = jobs_db.find_one({"slug": slug})
+    if job:
+        job["_id"] = str(job["_id"])
+        return jsonify(job)
+    
+    return jsonify({"error": "No job found with the specified slug!"})

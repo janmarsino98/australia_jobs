@@ -24,7 +24,7 @@ function App() {
           <Route path="/jobseekers" element={<JobSeekersPage />}></Route>
           <Route path="/about" element={<AboutPage />}></Route>
           <Route path="/jobspage" element={<JobsPage />}></Route>
-          <Route path="/job" element={<Job />}></Route>
+          <Route path="/job/:slug" element={<Job />}></Route>
         </Routes>
       </BrowserRouter>
     </PrimeReactProvider>
