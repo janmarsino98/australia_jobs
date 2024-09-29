@@ -6,6 +6,7 @@ import MiniJobCard from "../molecules/MiniJobCard";
 import CategoryChooser from "../molecules/CategoryChooser";
 import httpClient from "../../httpClient";
 import MainHeader from "../molecules/MainHeader";
+import NoResumeAlert from "../molecules/NoResumeAlert";
 
 const JobPage = () => {
   const [jobs, setJobs] = useState([]);
@@ -57,6 +58,7 @@ const JobPage = () => {
             </div>
           </div>
         </div>
+        <NoResumeAlert />
       </div>
     </div>
   );

@@ -1,7 +1,24 @@
 import LandingCard from "../molecules/LandingCard";
 import MainHeader from "../molecules/MainHeader";
+import { useState, useEffect } from "react";
+import httpClient from "@/httpClient";
 
 export default function Component() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const resp = await httpClient.get("http://localhost:5000/auth/@me");
+        setUser(resp.data);
+      } catch (e) {
+        console.log(e);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   let landingCards = [
     {
       title: "Job Seekers",

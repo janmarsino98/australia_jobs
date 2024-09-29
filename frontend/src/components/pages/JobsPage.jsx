@@ -19,6 +19,7 @@ import {
 import { Search, MapPin, Briefcase, Clock, DollarSign } from "lucide-react";
 import MainHeader from "../molecules/MainHeader";
 import { useNavigate } from "react-router-dom";
+import NoResumeAlert from "../molecules/NoResumeAlert";
 
 export default function JobsPage() {
   const [cities, setCities] = useState([]);
@@ -178,6 +179,7 @@ export default function JobsPage() {
             </Button>
           </section>
         </div>
+        <NoResumeAlert />
       </main>
 
       <footer className="bg-gray-800 text-white py-8 px-6">
