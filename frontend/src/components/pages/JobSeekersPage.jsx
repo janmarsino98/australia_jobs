@@ -14,6 +14,7 @@ import logo from "../../imgs/logo.png";
 import ana from "../../imgs/anna.jpg";
 import jhon from "../../imgs/jhon.jpg";
 import MainHeader from "../molecules/MainHeader";
+import NoResumeAlert from "../molecules/NoResumeAlert";
 
 export default function JobSeekersPage() {
   return (
@@ -127,6 +128,7 @@ export default function JobSeekersPage() {
             </div>
           </section>
         </div>
+        <NoResumeAlert />
       </main>
 
       <footer className="bg-gray-800 text-white py-8 px-6">

@@ -22,6 +22,7 @@ import MainHeader from "../molecules/MainHeader";
 import httpClient from "../../httpClient";
 import ReactMarkdown from "react-markdown";
 import Markdown from "react-markdown";
+import NoResumeAlert from "../molecules/NoResumeAlert";
 
 export default function JobDetailsPage() {
   const { slug } = useParams();
@@ -146,6 +147,7 @@ export default function JobDetailsPage() {
               </Button>
             </section>
           </div>
+          <NoResumeAlert></NoResumeAlert>
         </main>
       )}
 

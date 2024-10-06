@@ -38,6 +38,7 @@ def get_current_user():
         return jsonify({"error":"Unauthorized"}), 401
     
     user = users_db.find_one({"_id": ObjectId(user_id)})
+    print("Found a user:", user)
 
     user["_id"] = str(user["_id"])
     user["password"] = ""
