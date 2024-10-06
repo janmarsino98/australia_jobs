@@ -1,15 +1,15 @@
-import JobPage from "./components/pages/JobPage";
-import Landing from "./components/pages/Landing";
-import MainLand from "./components/pages/MainLand";
-import LoginPage from "./components/pages/LoginPage";
+import JobPage from "./pages/JobPage";
+import Landing from "./pages/Landing";
+import MainLand from "./pages/MainLand";
+import LoginPage from "./pages/LoginPage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { PrimeReactProvider } from "primereact/api";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
-import JobSeekersPage from "./components/pages/JobSeekersPage";
-import AboutPage from "./components/pages/AboutPage";
-import JobsPage from "./components/pages/JobsPage";
-import Job from "./components/pages/Job";
-import ResumeUpload from "./components/pages/ResumeUpload";
+import JobSeekersPage from "./pages/JobSeekersPage";
+import AboutPage from "./pages/AboutPage";
+import JobsPage from "./pages/JobsPage";
+import Job from "./pages/Job";
+import ResumeUpload from "./pages/ResumeUpload";
 
 function App() {
   return (

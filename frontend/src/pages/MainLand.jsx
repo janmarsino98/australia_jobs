@@ -1,5 +1,5 @@
-import LandingCard from "../molecules/LandingCard";
-import MainHeader from "../molecules/MainHeader";
+import LandingCard from "../components/molecules/LandingCard";
+import MainHeader from "../components/molecules/MainHeader";
 import { useState, useEffect } from "react";
 import httpClient from "@/httpClient";
 

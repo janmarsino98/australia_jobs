@@ -1,20 +1,9 @@
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import {
-  Search,
-  FileText,
-  BookOpen,
-  BriefcaseBusiness,
-  TrendingUp,
-} from "lucide-react";
-import LandingCard from "../molecules/LandingCard";
-import { IoGitMerge } from "react-icons/io5";
-import logo from "../../imgs/logo.png";
-import ana from "../../imgs/anna.jpg";
-import jhon from "../../imgs/jhon.jpg";
-import MainHeader from "../molecules/MainHeader";
-import NoResumeAlert from "../molecules/NoResumeAlert";
+import { FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
+import LandingCard from "../components/molecules/LandingCard";
+import ana from "../imgs/anna.jpg";
+import jhon from "../imgs/jhon.jpg";
+import MainHeader from "../components/molecules/MainHeader";
+import NoResumeAlert from "../components/molecules/NoResumeAlert";
 
 export default function JobSeekersPage() {
   return (
@@ -29,8 +18,8 @@ export default function JobSeekersPage() {
               <span className="text-blue-500">Career Opportunity</span>
             </h1>
             <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover thousands of job opportunities across Australia. Let's
-              find the perfect match for your skills and aspirations.
+              Discover thousands of job opportunities across Australia.
+              Let&apos;s find the perfect match for your skills and aspirations.
             </p>
           </section>
 

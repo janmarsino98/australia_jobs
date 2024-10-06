@@ -1,13 +1,7 @@
-import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Button } from "../components/ui/button";
 import { Users, BarChart, Globe, Heart } from "lucide-react";
-import MainHeader from "../molecules/MainHeader";
-import LandingCard from "../molecules/LandingCard";
+import MainHeader from "../components/molecules/MainHeader";
+import LandingCard from "../components/molecules/LandingCard";
 import { useNavigate } from "react-router-dom";
 
 export default function AboutPage() {
@@ -26,7 +20,7 @@ export default function AboutPage() {
               About <span className="text-blue-500">AusJobs</span>
             </h1>
             <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
-              Connecting Australian talent with opportunities. We're on a
+              Connecting Australian talent with opportunities. We&apos;re on a
               mission to revolutionize the job search experience.
             </p>
           </section>
@@ -89,11 +83,11 @@ export default function AboutPage() {
 
           <section className="text-center">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">
-              Join Us in Shaping Australia's Job Market
+              Join Us in Shaping Australia&apos;s Job Market
             </h2>
             <p className="text-xl text-gray-600 mb-6">
-              Whether you're a job seeker or an employer, we're here to help you
-              succeed.
+              Whether you&apos;re a job seeker or an employer, we&apos;re here
+              to help you succeed.
             </p>
             <Button
               size="lg"

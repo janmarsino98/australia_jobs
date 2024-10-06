@@ -1,28 +1,24 @@
-import { Button } from "../../components/ui/button";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
+} from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import {
   MapPin,
   Briefcase,
-  Clock,
   DollarSign,
   Calendar,
   Building,
-  Users,
   ArrowLeft,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import MainHeader from "../molecules/MainHeader";
-import httpClient from "../../httpClient";
-import ReactMarkdown from "react-markdown";
-import Markdown from "react-markdown";
-import NoResumeAlert from "../molecules/NoResumeAlert";
+import MainHeader from "../components/molecules/MainHeader";
+import httpClient from "../httpClient";
+import NoResumeAlert from "../components/molecules/NoResumeAlert";
 
 export default function JobDetailsPage() {
   const { slug } = useParams();

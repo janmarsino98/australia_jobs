@@ -1,11 +1,10 @@
-import React, { useEffect } from "react";
-import Navbar from "../molecules/Navbar";
-import SearchBox from "../molecules/SearchBox";
-import JobCard from "../molecules/JobCard";
-import JobRow from "../organisms/JobRow";
-import LocationDisplayer from "../molecules/LocationDisplayer";
-import MainFooter from "../molecules/MainFooter";
-import httpClient from "../../httpClient";
+import { useEffect } from "react";
+import Navbar from "../components/molecules/Navbar";
+import SearchBox from "../components/molecules/SearchBox";
+import JobRow from "../components/organisms/JobRow";
+import LocationDisplayer from "../components/molecules/LocationDisplayer";
+import MainFooter from "../components/molecules/MainFooter";
+import httpClient from "../httpClient";
 import { useState } from "react";
 
 const Landing = () => {

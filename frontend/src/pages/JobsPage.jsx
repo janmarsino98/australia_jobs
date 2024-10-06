@@ -1,12 +1,12 @@
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import httpClient from "../../httpClient";
+} from "../components/ui/card";
+import httpClient from "../httpClient";
 
 import { useState, useEffect } from "react";
 import {
@@ -168,7 +168,7 @@ export default function JobsPage() {
 
           <section className="text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Can't find what you're looking for?
+              Can&apos;t find what you&apos;re looking for?
             </h2>
             <p className="text-gray-600 mb-6">
               Set up job alerts and be the first to know when your dream job

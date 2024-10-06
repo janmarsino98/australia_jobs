@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
-import Navbar from "../molecules/Navbar";
-import SearchBox from "../molecules/SearchBox";
-import LocationDisplayer from "../molecules/LocationDisplayer";
-import MiniJobCard from "../molecules/MiniJobCard";
-import CategoryChooser from "../molecules/CategoryChooser";
-import httpClient from "../../httpClient";
-import MainHeader from "../molecules/MainHeader";
-import NoResumeAlert from "../molecules/NoResumeAlert";
+import SearchBox from "../components/molecules/SearchBox";
+import LocationDisplayer from "../components/molecules/LocationDisplayer";
+import MiniJobCard from "../components/molecules/MiniJobCard";
+import CategoryChooser from "../components/molecules/CategoryChooser";
+import httpClient from "../httpClient";
+import MainHeader from "../components/molecules/MainHeader";
+import NoResumeAlert from "../components/molecules/NoResumeAlert";
 
 const JobPage = () => {
   const [jobs, setJobs] = useState([]);

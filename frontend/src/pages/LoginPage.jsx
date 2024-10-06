@@ -1,15 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { MdOutlineLock } from "react-icons/md";
-import FormInput from "../molecules/FormInput";
-import { useNavigate } from "react-router-dom";
-import httpClient from "../../httpClient";
-import main_logo from "../../imgs/logo.png";
+import FormInput from "../components/molecules/FormInput";
+import httpClient from "../httpClient";
+import main_logo from "../imgs/logo.png";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -25,13 +23,10 @@ const LoginPage = () => {
     console.log(email, password);
 
     try {
-      const response = await httpClient.post(
-        "http://localhost:5000/auth/login",
-        {
-          email,
-          password,
-        }
-      );
+      await httpClient.post("http://localhost:5000/auth/login", {
+        email,
+        password,
+      });
       window.location.href = "/";
     } catch (e) {
       console.log(e);
