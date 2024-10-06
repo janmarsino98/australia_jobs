@@ -15,11 +15,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from "../components/ui/select";
 import { Search, MapPin, Briefcase, Clock, DollarSign } from "lucide-react";
-import MainHeader from "../molecules/MainHeader";
+import MainHeader from "../components/molecules/MainHeader";
 import { useNavigate } from "react-router-dom";
-import NoResumeAlert from "../molecules/NoResumeAlert";
+import NoResumeAlert from "../components/molecules/NoResumeAlert";
 
 export default function JobsPage() {
   const [cities, setCities] = useState([]);

@@ -12,7 +12,7 @@ const JobRow = ({ jobCards }) => {
             minSalary={card.minSalary}
             maxSalary={card.maxSalary}
             imgSrc={card.imgSrc}
-          ></JobCard>
+          />
         );
       })}
     </div>

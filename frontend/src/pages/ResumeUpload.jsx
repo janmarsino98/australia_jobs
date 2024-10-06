@@ -10,7 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import httpClient from "@/httpClient";
-import MainHeader from "../molecules/MainHeader";
+import MainHeader from "../components/molecules/MainHeader";
 
 export default function CVAnalysisPage() {
   const [analysisState, setAnalysisState] = useState("idle");
