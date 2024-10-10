@@ -1,9 +1,11 @@
-from flask import Blueprint, jsonify, request, session
+from flask import Flask,Blueprint, jsonify, request, session
 from extensions import mongo, bcrypt  # Import from extensions
 from flask_pymongo import ObjectId
 from datetime import datetime
 import constants as c
+import stripe
 
+stripe.api_key = 'sk_test_51Q83DKRvr2lf43Pu7rxqSkBy9NfqFLffJ18wSKJphsL6fozICNjJ4sIR5pXsDfnfg4bIxqSyF7301eGMPjiuP97Z006wtOJpCl'
 
 cities_bp = Blueprint("cities_bp", __name__)
 cities_db = mongo.db.cities
@@ -35,3 +37,19 @@ def get_main_cities():
         final_result.append(city)
         
     return jsonify(final_result)
+
+@cities_bp.route('/create-payment-intent', methods=['POST'])
+def create_payment_intent():
+    try:
+        data = request.get_json()
+        price = data.get('price')
+        intent = stripe.PaymentIntent.create(
+            amount=int(price * 100),
+            currency='usd',
+            automatic_payment_methods={'enabled': True},
+        )
+        return {
+            'clientSecret': intent['client_secret']
+        }
+    except Exception as e:
+        return {'error': str(e)}, 400

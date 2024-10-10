@@ -10,6 +10,8 @@ import AboutPage from "./pages/AboutPage";
 import JobsPage from "./pages/JobsPage";
 import Job from "./pages/Job";
 import ResumeUpload from "./pages/ResumeUpload";
+import PayingPage from "./pages/PayingPage";
+import PricingInformationPage from "./pages/PricingInformationPage";
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
           <Route path="/jobspage" element={<JobsPage />}></Route>
           <Route path="/job/:slug" element={<Job />}></Route>
           <Route path="/resume" element={<ResumeUpload />}></Route>
+          <Route path="/paying" element={<PayingPage />}></Route>
+          <Route path="/pricing" element={<PricingInformationPage />}></Route>
         </Routes>
       </BrowserRouter>
     </PrimeReactProvider>
