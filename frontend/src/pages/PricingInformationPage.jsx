@@ -5,22 +5,33 @@ import { useNavigate } from "react-router-dom";
 
 const packages = [
   {
-    name: "Basic",
-    price: 99,
+    name: "Free",
+    price: 0,
     features: [
-      "30-minute career consultation",
-      "Resume review",
-      "LinkedIn profile optimization tips",
+      "Instant AI feedback on your CV",
+      "Actionable suggestions",
+      "Essential CV writing resources",
     ],
   },
   {
-    name: "Standard",
-    price: 199,
+    name: "Basic",
+    price: 50,
     features: [
-      "60-minute career consultation",
-      "Resume review and rewrite",
-      "LinkedIn profile optimization",
-      "Job search strategy session",
+      "All Free Features Included",
+      "Resume analysis by a specialist",
+      "Australian Market Tailoring",
+      "Optimized layout and content",
+      "Up to 2 Revisions",
+    ],
+  },
+  {
+    name: "Professional",
+    price: 80,
+    features: [
+      "All Basic Features",
+      "Customized Cover Letter",
+      "Resume and cover letter aligned with your target role",
+      "Unlimited Revisions",
     ],
   },
 ];
@@ -48,31 +59,41 @@ const PricingInformationPage = () => {
             </p>
           </section>
 
-          <section className="grid gap-6 md:grid-cols-2">
+          <section className="grid gap-6 md:grid-cols-3 items-stretch">
             {packages.map((pkg, index) => (
-              <Card key={index}>
+              <Card key={index} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold text-center">
                     {pkg.name}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <ul className="list-disc list-inside space-y-2 text-sm text-gray-600 min-h-[150px]">
+
+                {/* 
+        Use flex in CardContent with flex-col and justify-between 
+        so the content is “pushed” apart (features at top, price & button at bottom).
+      */}
+                <CardContent className="flex flex-col justify-between flex-1 space-y-6">
+                  <ul className="list-disc list-inside space-y-2 text-sm text-gray-600">
                     {pkg.features.map((feature, featureIndex) => (
                       <li key={featureIndex}>{feature}</li>
                     ))}
                   </ul>
-                  <div className="text-center">
-                    <span className="text-3xl font-bold text-gray-800">
+
+                  {/* 
+          Wrap price and button in a container at the bottom 
+          so they align across all cards.
+        */}
+                  <div className="mt-4 text-center">
+                    <span className="block text-3xl font-bold text-gray-800 mb-4">
                       ${pkg.price}
                     </span>
+                    <Button
+                      onClick={() => handleSelectPackage(pkg)}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      Select
+                    </Button>
                   </div>
-                  <Button
-                    onClick={() => handleSelectPackage(pkg)}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    Select
-                  </Button>
                 </CardContent>
               </Card>
             ))}
