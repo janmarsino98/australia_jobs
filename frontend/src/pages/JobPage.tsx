@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import SearchBox from "../components/molecules/SearchBox";
 import LocationDisplayer from "../components/molecules/LocationDisplayer";
 import MiniJobCard from "../components/molecules/MiniJobCard";
@@ -6,23 +6,25 @@ import CategoryChooser from "../components/molecules/CategoryChooser";
 import httpClient from "../httpClient";
 import MainHeader from "../components/molecules/MainHeader";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
+import { Job } from "../types";
 
-const JobPage = () => {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const JobPage = (): JSX.Element => {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCategoryChange = async (selectedCategories) => {
+  const handleCategoryChange = async (selectedCategories: string[]): Promise<void> => {
     try {
       setLoading(true);
       const categoryQuery = selectedCategories.join(",");
-      const response = await httpClient.get(
+      const response = await httpClient.get<Job[]>(
         `http://localhost:5000/jobs/get?type=${categoryQuery}`
       );
       setJobs(response.data);
       setError(null);
     } catch (error) {
       console.error("Error while fetching jobs: ", error);
+      setError("Failed to fetch jobs");
     } finally {
       setLoading(false);
     }
@@ -39,7 +41,7 @@ const JobPage = () => {
         <MainHeader />
         <div className="flex flex-col w-full">
           <div className="mx-20 mt-[15px]">
-            <SearchBox></SearchBox>
+            <SearchBox />
             <div className="flex felx-row gap-4 items-center justify-between">
               <LocationDisplayer />
               <CategoryChooser onCategoryChange={handleCategoryChange} />
@@ -63,4 +65,4 @@ const JobPage = () => {
   );
 };
 
-export default JobPage;
+export default JobPage; 

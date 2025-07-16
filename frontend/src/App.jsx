@@ -1,39 +1,227 @@
-import JobPage from "./pages/JobPage";
-import Landing from "./pages/Landing";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import "./App.css";
 import MainLand from "./pages/MainLand";
 import LoginPage from "./pages/LoginPage";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { PrimeReactProvider } from "primereact/api";
-import "primereact/resources/themes/lara-light-cyan/theme.css";
 import JobSeekersPage from "./pages/JobSeekersPage";
 import AboutPage from "./pages/AboutPage";
 import JobsPage from "./pages/JobsPage";
 import Job from "./pages/Job";
-import ResumeUpload from "./pages/ResumeUpload";
+import JobPage from "./pages/JobPage";
+import Landing from "./pages/Landing";
 import PayingPage from "./pages/PayingPage";
 import PricingInformationPage from "./pages/PricingInformationPage";
+import ResumeUpload from "./pages/ResumeUpload";
+import EmployersPage from "./pages/EmployersPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+const pageVariants = {
+  initial: {
+    opacity: 0,
+    x: -20
+  },
+  animate: {
+    opacity: 1,
+    x: 0
+  },
+  exit: {
+    opacity: 0,
+    x: 20
+  }
+};
+
+const pageTransition = {
+  type: "tween",
+  ease: "anticipate",
+  duration: 0.3
+};
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route
+          path="/"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <MainLand />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <LoginPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/jobseekers"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <JobSeekersPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <AboutPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/jobs"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <JobsPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/job/:id"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <Job />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/jobpage"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <JobPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/landing"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <Landing />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/paying"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <PayingPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/pricing"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <PricingInformationPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/resume"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <ResumeUpload />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/employers"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <EmployersPage />
+            </motion.div>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 function App() {
   return (
-    <PrimeReactProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* <Landing /> */}
-          {/* <Landing /> */}
-          <Route path="/" element={<Landing />}></Route>
-          <Route path="/login" element={<LoginPage />}></Route>
-          <Route path="/jobs" element={<JobPage />}></Route>
-          <Route path="/main" element={<MainLand />}></Route>
-          <Route path="/jobseekers" element={<JobSeekersPage />}></Route>
-          <Route path="/about" element={<AboutPage />}></Route>
-          <Route path="/jobspage" element={<JobsPage />}></Route>
-          <Route path="/job/:slug" element={<Job />}></Route>
-          <Route path="/resume" element={<ResumeUpload />}></Route>
-          <Route path="/paying" element={<PayingPage />}></Route>
-          <Route path="/pricing" element={<PricingInformationPage />}></Route>
-        </Routes>
-      </BrowserRouter>
-    </PrimeReactProvider>
+    <ErrorBoundary>
+      <Router>
+        <AnimatedRoutes />
+      </Router>
+    </ErrorBoundary>
   );
 }
 

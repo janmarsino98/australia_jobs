@@ -1,35 +1,34 @@
-import { useState } from "react";
 import { AiOutlineMail } from "react-icons/ai";
 import { MdOutlineLock } from "react-icons/md";
 import FormInput from "../components/molecules/FormInput";
 import httpClient from "../httpClient";
 import main_logo from "../imgs/logo.png";
+import { useZodForm } from "../hooks/useZodForm";
+import { loginFormSchema } from "../lib/validations/forms";
+import { Alert, AlertDescription } from "../components/ui/alert";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useZodForm({
+    schema: loginFormSchema,
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
-
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-  };
-
-  const loginActive = email && password;
-
-  const logUser = async () => {
-    console.log(email, password);
-
+  const onSubmit = async (data) => {
     try {
-      await httpClient.post("http://localhost:5000/auth/login", {
-        email,
-        password,
-      });
+      await httpClient.post("http://localhost:5000/auth/login", data);
       window.location.href = "/";
-    } catch (e) {
-      console.log(e);
+    } catch (error) {
+      setError("root", {
+        message: "Invalid email or password. Please try again.",
+      });
     }
   };
 
@@ -45,27 +44,38 @@ const LoginPage = () => {
             />
           </div>
         </div>
+
+        {errors.root && (
+          <Alert variant="destructive">
+            <AlertDescription>{errors.root.message}</AlertDescription>
+          </Alert>
+        )}
+
         <FormInput
-          inputType={"email"}
-          label={"email"}
+          inputType="email"
+          label="Email"
           Icon={AiOutlineMail}
-          onChange={handleEmailChange}
+          error={errors.email?.message}
+          {...register("email")}
         />
         <FormInput
-          inputType={"password"}
-          label={"password"}
+          inputType="password"
+          label="Password"
           Icon={MdOutlineLock}
-          onChange={handlePasswordChange}
+          error={errors.password?.message}
+          {...register("password")}
         />
+
         <button
           className={`rounded-full py-3 text-white ${
-            loginActive ? "bg-blue-500" : "bg-gray-400"
+            isSubmitting ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
           }`}
-          disabled={!loginActive}
-          onClick={logUser}
+          disabled={isSubmitting}
+          onClick={handleSubmit(onSubmit)}
         >
-          Login
+          {isSubmitting ? "Logging in..." : "Login"}
         </button>
+
         <div className="flex flex-row justify-between text-[12px]">
           <a href="/signup">
             <span>Signup</span>

@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 export default function AboutPage() {
   const navigate = useNavigate();
   const handleButtonClick = () => {
-    navigate("/main");
+    navigate("/");
   };
   return (
     <div className="flex flex-col min-h-screen bg-white">

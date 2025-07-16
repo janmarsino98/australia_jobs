@@ -7,8 +7,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import httpClient from "../httpClient";
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -20,186 +19,153 @@ import { Search, MapPin, Briefcase, Clock, DollarSign } from "lucide-react";
 import MainHeader from "../components/molecules/MainHeader";
 import { useNavigate } from "react-router-dom";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
+import { useZodForm } from "../hooks/useZodForm";
+import { jobSearchSchema } from "../lib/validations/forms";
 
 export default function JobsPage() {
-  const [cities, setCities] = useState([]);
-  const [jobs, setJobs] = useState([]);
-  const [searchParams, setSearchParams] = useState({
-    title: "",
-    location: "",
+  const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { isSubmitting },
+  } = useZodForm({
+    schema: jobSearchSchema,
+    defaultValues: {
+      title: "",
+      location: "",
+      categories: [],
+    },
   });
 
-  const navigate = useNavigate();
+  const onSubmit = async (data) => {
+    try {
+      const endpoint = new URL("http://localhost:5000/jobs/get");
+      if (data.title) endpoint.searchParams.append("title", data.title);
+      if (data.location) endpoint.searchParams.append("location", data.location);
+      if (data.categories?.length) {
+        endpoint.searchParams.append("categories", data.categories.join(","));
+      }
+
+      const resp = await httpClient.get(endpoint.toString());
+      setJobs(resp.data);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    }
+  };
+
+  const [cities, setCities] = useState([]);
+  const [jobs, setJobs] = useState([]);
 
   const fetchCities = async () => {
     try {
-      const resp = await httpClient.get(
-        "http://localhost:5000/cities/get_main"
-      );
+      const resp = await httpClient.get("http://localhost:5000/cities/get_main");
       setCities(resp.data);
     } catch (error) {
       console.error("Error trying to get cities: ", error);
     }
   };
 
-  const fetchJobs = async (title = "", location = "") => {
-    try {
-      let endpoint = "http://localhost:5000/jobs/get";
-
-      if (title || location) {
-        endpoint += `?title=${title}&location=${location}`;
-      }
-
-      const resp = await httpClient.get(endpoint);
-      setJobs(resp.data);
-    } catch (error) {
-      console.error("Error trying to fetch last jobs: ", error);
-    }
-  };
-
   useEffect(() => {
     fetchCities();
-    fetchJobs();
+    onSubmit({}); // Initial job fetch with empty params
   }, []);
-
-  const handleSearch = () => {
-    fetchJobs(searchParams.title, searchParams.location);
-    console.log(`The current params are: ${searchParams}`);
-  };
 
   const handleViewJobClick = (link) => {
     navigate(`/job/${link}`);
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <MainHeader />
+      <NoResumeAlert />
 
-      <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
-        <div className="max-w-6xl mx-auto space-y-8">
-          <section className="text-center">
-            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl text-gray-800">
-              Find Your Next{" "}
-              <span className="text-blue-500">Career Opportunity</span>
-            </h1>
-            <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
-              Explore thousands of job listings across Australia and find the
-              perfect match for your skills and aspirations.
-            </p>
-          </section>
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">Find Your Next Job</h1>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center space-x-2">
+                <Search className="w-5 h-5 text-gray-500" />
+                <Input
+                  placeholder="Job title or keyword"
+                  {...register("title")}
+                />
+              </div>
 
-          <section className="bg-white p-6 rounded-lg shadow-md">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input
-                placeholder="Job title or keywords"
-                className="md:col-span-2"
-                value={searchParams.title}
-                onChange={(e) =>
-                  setSearchParams({ ...searchParams, title: e.target.value })
-                }
-              />
-              <Select
-                onValueChange={(value) =>
-                  setSearchParams({ ...searchParams, location: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city, index) => (
-                    <SelectItem value={city.city} key={index}>
-                      {city.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-5 h-5 text-gray-500" />
+                <Select
+                  onValueChange={(value) => setValue("location", value)}
+                  value={watch("location")}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-                onClick={handleSearch}
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full md:w-auto"
               >
-                <Search className="mr-2 h-4 w-4" /> Search Jobs
+                {isSubmitting ? "Searching..." : "Search Jobs"}
               </Button>
             </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Featured Job Listings
-            </h2>
-            <div className="space-y-4">
-              {jobs.slice(0, 5).map((job, index) => (
-                <Card key={index} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-xl font-semibold text-gray-800">
-                      {job.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center text-gray-600">
-                        <Briefcase className="mr-2 h-4 w-4" />
-                        {job.firm}
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="mr-2 h-4 w-4" />
-                        {job.location}
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="mr-2 h-4 w-4" />
-                        {job.shift}
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <DollarSign className="mr-2 h-4 w-4" />
-                        {job.remuneration_amount} / {job.remuneration_period}
-                      </div>
-                    </div>
-                    <Button
-                      className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white"
-                      onClick={() => handleViewJobClick(job.slug)}
-                    >
-                      View Job
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          <section className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Can&apos;t find what you&apos;re looking for?
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Set up job alerts and be the first to know when your dream job
-              becomes available.
-            </p>
-            <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-              Create Job Alert
-            </Button>
-          </section>
+          </form>
         </div>
-        <NoResumeAlert />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <Card key={job._id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-xl">{job.title}</CardTitle>
+                <div className="flex items-center text-gray-500 text-sm space-x-4">
+                  <span className="flex items-center">
+                    <Briefcase className="w-4 h-4 mr-1" />
+                    {job.type}
+                  </span>
+                  <span className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    {job.location}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4 line-clamp-3">
+                  {job.description}
+                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center text-gray-500">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {new Date(job.posted_date).toLocaleDateString()}
+                  </span>
+                  <span className="flex items-center font-semibold text-green-600">
+                    <DollarSign className="w-4 h-4" />
+                    {job.salary}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => handleViewJobClick(job.slug)}
+                >
+                  View Details
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </main>
-
-      <footer className="bg-gray-800 text-white py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center">
-          <div className="text-sm mb-4 sm:mb-0">
-            © 2024 AusJobs. All rights reserved.
-          </div>
-          <div className="flex space-x-4">
-            <a href="#" className="text-sm hover:text-blue-300">
-              Privacy
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Terms
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Cookies
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

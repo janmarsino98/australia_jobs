@@ -1,16 +1,23 @@
+import React, { useState, useEffect } from "react";
 import httpClient from "../../httpClient";
 import Category_Pill from "../atoms/Category_Pill";
-import PropTypes from "prop-types";
-import { useState, useEffect } from "react";
 
-const CategoryChooser = ({ onCategoryChange }) => {
-  const [categories, setCategories] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
+interface JobType {
+  jobtype: string;
+}
+
+interface CategoryChooserProps {
+  onCategoryChange: (categories: string[]) => void;
+}
+
+const CategoryChooser = ({ onCategoryChange }: CategoryChooserProps): JSX.Element => {
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        let response = await httpClient.get(
+        const response = await httpClient.get<JobType[]>(
           "http://localhost:5000/jobtypes/get_all"
         );
 
@@ -24,14 +31,13 @@ const CategoryChooser = ({ onCategoryChange }) => {
     fetchCategories();
   }, []);
 
-  const handlePillClick = (value) => {
+  const handlePillClick = (value: string): void => {
     // Remove the category from the available list
     const updatedCategories = selectedCategories.filter(
       (category) => category !== value
     );
 
     // Add the selected category to the selectedCategories list
-
     setSelectedCategories(updatedCategories);
 
     // Notify parent component
@@ -51,13 +57,9 @@ const CategoryChooser = ({ onCategoryChange }) => {
           handleClick={() => handlePillClick(category)}
         />
       ))}
-      <Category_Pill name={"+"} value={"+"} />
+      <Category_Pill name="+" value="+" handleClick={() => {}} />
     </div>
   );
 };
 
-CategoryChooser.propTypes = {
-  onCategoryChange: PropTypes.func.isRequired,
-};
-
-export default CategoryChooser;
+export default CategoryChooser; 
