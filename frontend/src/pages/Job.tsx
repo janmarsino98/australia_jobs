@@ -45,7 +45,7 @@ const JobDetailsPage: React.FC = () => {
   }, [slug]);
 
   const handleBackClick = () => {
-    navigate("/jobspage");
+    navigate("/jobs");
   };
 
   const handleApply = () => {

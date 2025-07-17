@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import httpClient from "@/httpClient";
 import MainHeader from "../components/molecules/MainHeader";
+import ResumePreview from "../components/molecules/ResumePreview";
 
 export default function CVAnalysisPage() {
   const [analysisState, setAnalysisState] = useState("idle");
@@ -18,6 +19,7 @@ export default function CVAnalysisPage() {
   const [resumeUploaded, setResumeUploaded] = useState(false);
   const [resumeName, setResumeName] = useState("");
   const [user, setUser] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -34,7 +36,6 @@ export default function CVAnalysisPage() {
     fetchUser();
   }, []);
 
-  // useEffect(() => {
   const fetchCurrentUserResume = async () => {
     try {
       const response = await httpClient.get(
@@ -51,9 +52,6 @@ export default function CVAnalysisPage() {
       console.error("Error trying to fetch current user resume.", error);
     }
   };
-
-  //   fetchCurrentUserResume();
-  // }, [user]);
 
   const startAnalysis = () => {
     setAnalysisState("analyzing");
@@ -87,6 +85,7 @@ export default function CVAnalysisPage() {
 
         setResumeUploaded(true);
         setResumeName(file.name);
+        setUploadedFile(file);
       } catch (error) {
         console.error("Error uploading the file:", error);
       }
@@ -100,164 +99,158 @@ export default function CVAnalysisPage() {
       });
       setResumeUploaded(false);
       setResumeName("");
+      setUploadedFile(null);
       setAnalysisState("idle");
-      setProgress(0);
     } catch (error) {
-      console.error("Error deleting the resume:", error);
+      console.error("Error deleting resume:", error);
     }
   };
 
+  const handleAnalysisComplete = (analysis) => {
+    console.log("Analysis completed:", analysis);
+    // You can save the analysis results or update user profile here
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <MainHeader />
-
-      <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <section className="text-center">
-            <h1 className="text-4xl font-bold tracking-tighter text-gray-800 mb-4">
-              AI-Powered CV Analysis
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Get instant feedback and improvement suggestions for your CV
-            </p>
-          </section>
-
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>
-                {resumeUploaded ? "Your Resume" : "Upload Your CV"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {resumeUploaded ? (
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <FileText className="w-6 h-6 text-blue-500" />
-                    <span className="font-medium text-gray-700">
-                      {resumeName}
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeleteResume}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-full">
-                  <label
-                    htmlFor="dropzone-file"
-                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-10 h-10 mb-3 text-gray-400" />
-                      <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Click to upload</span>{" "}
-                        or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PDF, DOCX (MAX. 5MB)
-                      </p>
+      
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Resume Analysis</h1>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Upload Section */}
+            <div className="space-y-6">
+              {/* Upload Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Upload className="w-5 h-5 mr-2" />
+                    Upload Resume
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!resumeUploaded ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="resume-upload"
+                      />
+                      <label
+                        htmlFor="resume-upload"
+                        className="cursor-pointer flex flex-col items-center space-y-4"
+                      >
+                        <Upload className="w-12 h-12 text-gray-400" />
+                        <div>
+                          <p className="text-lg font-medium">Drop your resume here</p>
+                          <p className="text-sm text-gray-500">
+                            or click to browse (PDF, DOC, DOCX)
+                          </p>
+                        </div>
+                      </label>
                     </div>
-                    <input
-                      id="dropzone-file"
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                  </label>
-                </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                          <div>
+                            <p className="font-medium">Resume uploaded successfully</p>
+                            <p className="text-sm text-gray-600">{resumeName}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeleteResume}
+                          className="flex items-center space-x-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span>Remove</span>
+                        </Button>
+                      </div>
+
+                      {analysisState === "idle" && (
+                        <Button
+                          onClick={startAnalysis}
+                          className="w-full"
+                        >
+                          Start Analysis
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Analysis Progress */}
+              {analysisState === "analyzing" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <FileText className="w-5 h-5 mr-2" />
+                      Analyzing Resume
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Analysis Progress</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      We're analyzing your resume for content quality, ATS compatibility, and improvement suggestions.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
-              <Button
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                onClick={
-                  resumeUploaded
-                    ? startAnalysis
-                    : () => document.getElementById("dropzone-file")?.click()
-                }
-                disabled={analysisState === "analyzing"}
-              >
-                {resumeUploaded
-                  ? analysisState === "idle"
-                    ? "Analyze CV"
-                    : analysisState === "analyzing"
-                    ? "Analyzing..."
-                    : "Analysis Complete"
-                  : "Upload Resume"}
-              </Button>
-            </CardContent>
-          </Card>
 
-          {analysisState !== "idle" && resumeUploaded && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Progress value={progress} className="w-full" />
-                <p className="mt-2 text-center text-sm text-gray-600">
-                  {analysisState === "analyzing"
-                    ? `${progress}% complete`
-                    : "Analysis complete!"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
+              {/* Analysis Complete */}
+              {analysisState === "complete" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-green-600">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Analysis Complete
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Your resume has been analyzed successfully. Review the results and suggestions on the right.
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => setAnalysisState("idle")}
+                        variant="outline"
+                      >
+                        Run Again
+                      </Button>
+                      <Button>
+                        Download Improved Resume
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
 
-          {analysisState === "complete" && resumeUploaded && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="text-green-500" />
-                    <span>Strong professional summary</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <AlertCircle className="text-yellow-500" />
-                    <span>Consider adding more quantifiable achievements</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="text-green-500" />
-                    <span>Good use of action verbs</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <AlertCircle className="text-yellow-500" />
-                    <span>Skills section could be more comprehensive</span>
-                  </div>
-                </div>
-                <Button className="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white">
-                  View Detailed Report
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+            {/* Preview Section */}
+            <div>
+              <ResumePreview
+                resumeFile={uploadedFile}
+                onAnalysisComplete={handleAnalysisComplete}
+                className="w-full"
+              />
+            </div>
+          </div>
         </div>
       </main>
-
-      <footer className="bg-gray-800 text-white py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center">
-          <div className="text-sm mb-4 sm:mb-0">
-            © 2024 AusJobs. All rights reserved.
-          </div>
-          <div className="flex space-x-4">
-            <a href="#" className="text-sm hover:text-blue-300">
-              Privacy
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Terms
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Cookies
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

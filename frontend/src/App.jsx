@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { Suspense, useEffect } from "react";
 import "./App.css";
 import MainLand from "./pages/MainLand";
 import LoginPage from "./pages/LoginPage";
@@ -13,7 +14,10 @@ import PayingPage from "./pages/PayingPage";
 import PricingInformationPage from "./pages/PricingInformationPage";
 import ResumeUpload from "./pages/ResumeUpload";
 import EmployersPage from "./pages/EmployersPage";
+import DashboardPage from "./pages/DashboardPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingSpinner } from "./components/molecules/LoadingSpinner";
+import useAuthStore from "./stores/useAuthStore";
 
 const pageVariants = {
   initial: {
@@ -67,6 +71,20 @@ const AnimatedRoutes = () => {
               transition={pageTransition}
             >
               <LoginPage />
+            </motion.div>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={pageVariants}
+              transition={pageTransition}
+            >
+              <DashboardPage />
             </motion.div>
           }
         />
@@ -216,11 +234,25 @@ const AnimatedRoutes = () => {
 };
 
 function App() {
+  // Initialize auth store
+  const { refreshAccessToken } = useAuthStore();
+
+  useEffect(() => {
+    // Check if we need to refresh the token on app load
+    refreshAccessToken();
+  }, [refreshAccessToken]);
+
   return (
     <ErrorBoundary>
-      <Router>
-        <AnimatedRoutes />
-      </Router>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      }>
+        <Router>
+          <AnimatedRoutes />
+        </Router>
+      </Suspense>
     </ErrorBoundary>
   );
 }

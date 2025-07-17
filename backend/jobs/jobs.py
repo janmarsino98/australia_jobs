@@ -122,10 +122,17 @@ def delete_job():
     
 @jobs_bp.route("/get", methods=["GET"])
 def get_jobs():
-
     job_title = request.args.get("title", "")
     location = request.args.get("location", "")
     job_type = request.args.get("type", "")
+    
+    # New advanced filter parameters
+    salary_min = request.args.get("salaryMin", "")
+    salary_max = request.args.get("salaryMax", "")
+    job_type_filter = request.args.get("jobType", "")
+    experience_level = request.args.get("experienceLevel", "")
+    date_posted = request.args.get("datePosted", "")
+    work_arrangement = request.args.get("workArrangement", "")
 
     search_parameters = {}
 
@@ -139,11 +146,82 @@ def get_jobs():
         location_list = location.split(",")
         search_parameters["location"] = {"$in": location_list}
 
-
     if job_type:
         job_type_list = job_type.split(",")
         search_parameters["jobtype"] = {"$in": job_type_list}
-    print(search_parameters)
+    
+    # Handle jobType filter (from advanced filters)
+    if job_type_filter:
+        search_parameters["jobtype"] = {"$regex": job_type_filter, "$options": "i"}
+    
+    # Handle salary range filters
+    if salary_min or salary_max:
+        salary_filter = {}
+        if salary_min:
+            try:
+                salary_filter["$gte"] = int(salary_min)
+            except ValueError:
+                pass
+        if salary_max:
+            try:
+                salary_filter["$lte"] = int(salary_max)
+            except ValueError:
+                pass
+        if salary_filter:
+            search_parameters["remuneration_amount"] = salary_filter
+    
+    # Handle experience level filter
+    if experience_level:
+        # Map experience levels to keywords that might appear in job descriptions
+        experience_keywords = {
+            "entry": ["entry", "junior", "graduate", "trainee", "beginner"],
+            "mid": ["mid", "intermediate", "experienced", "3-5 years"],
+            "senior": ["senior", "lead", "principal", "5+ years", "expert"],
+            "executive": ["executive", "director", "manager", "head", "chief"]
+        }
+        if experience_level in experience_keywords:
+            keywords = experience_keywords[experience_level]
+            search_parameters["$or"] = search_parameters.get("$or", []) + [
+                {"description": {"$regex": keyword, "$options": "i"}} for keyword in keywords
+            ]
+    
+    # Handle date posted filter
+    if date_posted:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        date_filters = {
+            "today": now - timedelta(days=1),
+            "last3days": now - timedelta(days=3),
+            "lastWeek": now - timedelta(days=7),
+            "lastMonth": now - timedelta(days=30)
+        }
+        if date_posted in date_filters:
+            search_parameters["created_at"] = {
+                "$gte": date_filters[date_posted].isoformat()
+            }
+    
+    # Handle work arrangement filter
+    if work_arrangement:
+        arrangement_keywords = {
+            "remote": ["remote", "work from home", "wfh"],
+            "on-site": ["on-site", "office", "in-person"],
+            "hybrid": ["hybrid", "flexible", "mixed"]
+        }
+        if work_arrangement in arrangement_keywords:
+            keywords = arrangement_keywords[work_arrangement]
+            arrangement_or = [
+                {"description": {"$regex": keyword, "$options": "i"}} for keyword in keywords
+            ]
+            if "$or" in search_parameters:
+                search_parameters["$and"] = [
+                    {"$or": search_parameters["$or"]},
+                    {"$or": arrangement_or}
+                ]
+                del search_parameters["$or"]
+            else:
+                search_parameters["$or"] = arrangement_or
+
+    print("Search parameters:", search_parameters)
     jobs_to_retrieve = jobs_db.find(search_parameters)
     
     final_jobs_to_retrieve = []
@@ -190,6 +268,94 @@ def create_slug_with_code(job_title, location):
     base_slug = slugify(f"{job_title} {location}")
     random_code = generate_random_code()
     return f"{base_slug}-{random_code}"
+
+
+@jobs_bp.route("/suggestions/titles", methods=["GET"])
+def get_title_suggestions():
+    query = request.args.get("q", "").strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    try:
+        # Aggregate unique job titles that match the query
+        pipeline = [
+            {
+                "$match": {
+                    "title": {"$regex": query, "$options": "i"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$title",
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"count": -1}
+            },
+            {
+                "$limit": 8
+            }
+        ]
+        
+        suggestions = list(jobs_db.aggregate(pipeline))
+        formatted_suggestions = [
+            {
+                "value": suggestion["_id"],
+                "type": "title",
+                "count": suggestion["count"]
+            }
+            for suggestion in suggestions
+        ]
+        
+        return jsonify(formatted_suggestions)
+    except Exception as e:
+        print(f"Error getting title suggestions: {e}")
+        return jsonify([])
+
+
+@jobs_bp.route("/suggestions/locations", methods=["GET"])
+def get_location_suggestions():
+    query = request.args.get("q", "").strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    
+    try:
+        # Aggregate unique locations that match the query
+        pipeline = [
+            {
+                "$match": {
+                    "location": {"$regex": query, "$options": "i"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": "$location",
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"count": -1}
+            },
+            {
+                "$limit": 6
+            }
+        ]
+        
+        suggestions = list(jobs_db.aggregate(pipeline))
+        formatted_suggestions = [
+            {
+                "value": suggestion["_id"],
+                "type": "location",
+                "count": suggestion["count"]
+            }
+            for suggestion in suggestions
+        ]
+        
+        return jsonify(formatted_suggestions)
+    except Exception as e:
+        print(f"Error getting location suggestions: {e}")
+        return jsonify([])
 
 
 @jobs_bp.route("/<slug>", methods= ["GET"])

@@ -4,15 +4,43 @@ export interface User {
     email: string;
     name: string;
     role: 'jobseeker' | 'employer';
+    phone?: string;
+    bio?: string;
+    skills?: string[];
+    experience?: string;
+    education?: string;
+    location?: {
+        city?: string;
+        state?: string;
+    };
+    profileImage?: string;
+    linkedin?: string;
+    github?: string;
+    website?: string;
+    resumeUploaded?: boolean;
+    preferences?: {
+        jobTypes?: string[];
+        salaryRange?: {
+            min?: number;
+            max?: number;
+        };
+        workArrangement?: string;
+    };
 }
 
 export interface AuthState {
     user: User | null;
     token: string | null;
+    refreshToken: string | null;
+    refreshTokenTimeout: NodeJS.Timeout | null;
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
     logout: () => void;
     setUser: (user: User) => void;
+    setAuthTokens: (token: string, refreshToken: string) => void;
+    setRefreshTokenTimer: () => void;
+    clearRefreshTokenTimer: () => void;
+    refreshAccessToken: () => Promise<void>;
 }
 
 // Job Search Filter Types
