@@ -17,6 +17,25 @@ export const loginFormSchema = z.object({
     rememberMe: z.boolean().optional().default(false)
 });
 
+export const resetPasswordRequestSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+});
+
+export const resetPasswordSchema = z.object({
+    code: z.string().min(6, "Please enter the 6-digit code").max(6, "Code must be exactly 6 digits"),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+        ),
+    confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
 // Payment form schema
 export const paymentFormSchema = z.object({
     cardName: z.string()

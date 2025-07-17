@@ -1,131 +1,175 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import httpClient from '../httpClient';
-import { AuthState, User } from '../types/store';
-import { jwtDecode } from 'jwt-decode';
+
+interface User {
+    id: string;
+    email: string;
+    name: string;
+    avatar?: string;
+    roles: string[];
+}
+
+interface AuthResponse {
+    user: User;
+    token: string;
+    refreshToken: string;
+    type: 'social_auth_success';
+}
+
+interface AuthState {
+    user: User | null;
+    token: string | null;
+    refreshToken: string | null;
+    isAuthenticated: boolean;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
+    loginWithLinkedIn: () => Promise<void>;
+    logout: () => void;
+    refreshSession: () => Promise<void>;
+}
 
 const useAuthStore = create<AuthState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             user: null,
             token: null,
             refreshToken: null,
             isAuthenticated: false,
-            refreshTokenTimeout: null,
 
-            setAuthTokens: (token: string, refreshToken: string) => {
-                set({ token, refreshToken });
-                httpClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            },
-
-            setRefreshTokenTimer: () => {
-                // Simplified - no automatic refresh for now
-            },
-
-            clearRefreshTokenTimer: () => {
-                const state = get();
-                if (state.refreshTokenTimeout) {
-                    clearTimeout(state.refreshTokenTimeout);
-                    set({ refreshTokenTimeout: null });
-                }
-            },
-
-            refreshAccessToken: async () => {
-                const state = get();
-                if (!state.refreshToken) {
-                    get().logout();
-                    return;
-                }
-
+            login: async (email: string, password: string, rememberMe = false) => {
                 try {
-                    const response = await httpClient.post('/api/auth/refresh', {
-                        refreshToken: state.refreshToken,
+                    // TODO: Implement actual login API call
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, rememberMe }),
                     });
-                    const { token: newToken, refreshToken: newRefreshToken } = response.data;
-                    get().setAuthTokens(newToken, newRefreshToken);
-                } catch (error) {
-                    console.error('Failed to refresh token:', error);
-                    get().logout();
-                }
-            },
 
-            login: async (email: string, password: string, rememberMe: boolean = false) => {
-                try {
-                    const response = await httpClient.post('/api/auth/login', { email, password });
-                    const { user, token, refreshToken } = response.data;
-
-                    // Validate token
-                    const decoded = jwtDecode(token);
-                    const expiryTime = decoded.exp ? decoded.exp * 1000 : 0;
-
-                    if (Date.now() >= expiryTime - 5 * 60 * 1000) {
-                        throw new Error('Token is expired or about to expire');
+                    if (!response.ok) {
+                        throw new Error('Login failed');
                     }
 
-                    // Set user and authentication state
+                    const data = await response.json();
                     set({
-                        user,
+                        user: data.user,
+                        token: data.token,
+                        refreshToken: data.refreshToken,
                         isAuthenticated: true,
                     });
-
-                    // Set tokens
-                    get().setAuthTokens(token, refreshToken);
-
-                    // Handle remember me
-                    if (rememberMe) {
-                        localStorage.setItem('rememberMe', 'true');
-                    } else {
-                        localStorage.removeItem('rememberMe');
-                    }
                 } catch (error) {
-                    get().logout();
+                    throw error;
+                }
+            },
+
+            loginWithGoogle: async () => {
+                try {
+                    // TODO: Implement Google OAuth flow
+                    const popup = window.open(
+                        '/api/auth/google',
+                        'Google Login',
+                        'width=500,height=600'
+                    );
+
+                    const result = await new Promise<AuthResponse>((resolve, reject) => {
+                        window.addEventListener('message', (event) => {
+                            if (event.data.type === 'social_auth_success') {
+                                resolve(event.data as AuthResponse);
+                            } else if (event.data.type === 'social_auth_error') {
+                                reject(new Error(event.data.error));
+                            }
+                        });
+                    });
+
+                    set({
+                        user: result.user,
+                        token: result.token,
+                        refreshToken: result.refreshToken,
+                        isAuthenticated: true,
+                    });
+                } catch (error) {
+                    throw error;
+                }
+            },
+
+            loginWithLinkedIn: async () => {
+                try {
+                    // TODO: Implement LinkedIn OAuth flow
+                    const popup = window.open(
+                        '/api/auth/linkedin',
+                        'LinkedIn Login',
+                        'width=500,height=600'
+                    );
+
+                    const result = await new Promise<AuthResponse>((resolve, reject) => {
+                        window.addEventListener('message', (event) => {
+                            if (event.data.type === 'social_auth_success') {
+                                resolve(event.data as AuthResponse);
+                            } else if (event.data.type === 'social_auth_error') {
+                                reject(new Error(event.data.error));
+                            }
+                        });
+                    });
+
+                    set({
+                        user: result.user,
+                        token: result.token,
+                        refreshToken: result.refreshToken,
+                        isAuthenticated: true,
+                    });
+                } catch (error) {
                     throw error;
                 }
             },
 
             logout: () => {
-                const state = get();
-
-                // Clear refresh timer
-                if (state.refreshTokenTimeout) {
-                    clearTimeout(state.refreshTokenTimeout);
-                }
-
-                // Clear httpClient auth header
-                delete httpClient.defaults.headers.common['Authorization'];
-
-                // Clear local storage
-                if (typeof localStorage !== 'undefined') {
-                    localStorage.removeItem('rememberMe');
-                }
-
-                // Reset state
                 set({
                     user: null,
                     token: null,
                     refreshToken: null,
                     isAuthenticated: false,
-                    refreshTokenTimeout: null,
                 });
             },
 
-            setUser: (user: User) => {
-                set({ user });
+            refreshSession: async () => {
+                try {
+                    const refreshToken = useAuthStore.getState().refreshToken;
+                    if (!refreshToken) {
+                        throw new Error('No refresh token available');
+                    }
+
+                    const response = await fetch('/api/auth/refresh', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ refreshToken }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Session refresh failed');
+                    }
+
+                    const data = await response.json();
+                    set({
+                        token: data.token,
+                        refreshToken: data.refreshToken,
+                    });
+                } catch (error) {
+                    set({
+                        user: null,
+                        token: null,
+                        refreshToken: null,
+                        isAuthenticated: false,
+                    });
+                    throw error;
+                }
             },
         }),
         {
             name: 'auth-storage',
             partialize: (state) => ({
-                user: state.user,
                 token: state.token,
                 refreshToken: state.refreshToken,
-                isAuthenticated: state.isAuthenticated,
+                user: state.user,
             }),
-            onRehydrateStorage: () => (state) => {
-                if (state?.token) {
-                    httpClient.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-                }
-            },
         }
     )
 );

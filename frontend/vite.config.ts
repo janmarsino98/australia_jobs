@@ -12,6 +12,13 @@ export default defineConfig({
             brotliSize: true,
         }),
     ],
+    server: {
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+        },
+    },
     build: {
         rollupOptions: {
             output: {
