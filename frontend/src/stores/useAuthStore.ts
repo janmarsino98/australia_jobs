@@ -1,13 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-interface User {
-    id: string;
-    email: string;
-    name: string;
-    avatar?: string;
-    roles: string[];
-}
+import { User } from '../types/store';
 
 interface AuthResponse {
     user: User;

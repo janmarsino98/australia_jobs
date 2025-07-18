@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/useAuthStore';
 import { LoadingSpinner } from './LoadingSpinner';
+import config from '../../config';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -13,6 +14,11 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
   const location = useLocation();
   const { isAuthenticated, user, refreshSession } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+
+  // If authentication is disabled for testing, bypass all auth checks
+  if (config.disableAuthForTesting) {
+    return <>{children}</>;
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -48,7 +54,7 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
   }
 
   // Skip role check if no roles are required or user has no role
-  if (allowedRoles.length > 0 && !user?.roles?.some(role => allowedRoles.includes(role))) {
+  if (allowedRoles.length > 0 && user?.role && !allowedRoles.includes(user.role)) {
     navigate('/unauthorized');
     return null;
   }

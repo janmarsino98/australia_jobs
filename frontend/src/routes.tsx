@@ -6,14 +6,21 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DashboardPage from "./pages/DashboardPage";
 import JobPage from "./pages/JobPage";
 import JobsPage from "./pages/JobsPage";
-import Landing from "./pages/Landing";
+import MainLanding from "./pages/MainLand";
 import EmployersPage from "./pages/EmployersPage";
+import JobSeekersPage from "./pages/JobSeekersPage";
+import AboutPage from "./pages/AboutPage";
+import ResumeUpload from "./pages/ResumeUpload";
+import PricingInformationPage from "./pages/PricingInformationPage";
+import PayingPage from "./pages/PayingPage";
+import Landing from "./pages/Landing";
+import Job from "./pages/Job";
 import { Outlet } from "react-router-dom";
 
 const routes = createBrowserRouter([
   {
     path: "/",
-    element: <Landing />,
+    element: <MainLanding />,
   },
   {
     path: "/login",
@@ -26,6 +33,38 @@ const routes = createBrowserRouter([
   {
     path: "/unauthorized",
     element: <UnauthorizedPage />,
+  },
+  {
+    path: "/jobseekers",
+    element: <JobSeekersPage />,
+  },
+  {
+    path: "/employers",
+    element: <EmployersPage />,
+  },
+  {
+    path: "/about",
+    element: <AboutPage />,
+  },
+  {
+    path: "/resume-upload",
+    element: <ResumeUpload />,
+  },
+  {
+    path: "/pricing",
+    element: <PricingInformationPage />,
+  },
+  {
+    path: "/payment",
+    element: <PayingPage />,
+  },
+  {
+    path: "/landing",
+    element: <Landing />,
+  },
+  {
+    path: "/job/:id",
+    element: <Job />,
   },
   {
     path: "/dashboard",
