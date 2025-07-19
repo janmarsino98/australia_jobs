@@ -56,7 +56,7 @@ def init_oauth(app):
         print(f"Error during Google OAuth registration: {str(e)}")
         print(f"Full error details: {repr(e)}")
     
-    # LinkedIn OAuth configuration (OAuth 2.0 + OpenID Connect)
+    # LinkedIn OAuth configuration (Modern scopes without JWT complications)
     try:
         print("\nAttempting to register LinkedIn OAuth...")
         linkedin = oauth.register(
@@ -67,7 +67,7 @@ def init_oauth(app):
             authorize_url='https://www.linkedin.com/oauth/v2/authorization',
             api_base_url='https://api.linkedin.com/v2/',
             client_kwargs={
-                'scope': 'openid profile email',  # Updated scopes for OpenID Connect
+                'scope': 'profile email',  # Reliable scopes without JWT validation complexity
                 'token_endpoint_auth_method': 'client_secret_post'
             }
         )
@@ -256,10 +256,21 @@ def get_current_user():
 
 
 def find_or_create_oauth_user(email, name, provider, provider_id):
-    """Find existing user or create new OAuth user"""
+    """Find existing user or create new OAuth user (handles missing email)"""
     try:
-        # Check if user exists with this email
-        existing_user = users_db.find_one({"email": email})
+        existing_user = None
+        
+        # First, try to find user by email if we have one
+        if email:
+            existing_user = users_db.find_one({"email": email})
+            print(f"Looking for existing user by email: {email} - Found: {bool(existing_user)}")
+        
+        # If no user found by email, try to find by OAuth provider ID
+        if not existing_user:
+            existing_user = users_db.find_one({
+                f"oauth_accounts.{provider}.provider_id": provider_id
+            })
+            print(f"Looking for existing user by {provider} ID: {provider_id} - Found: {bool(existing_user)}")
         
         if existing_user:
             # Update OAuth info if not already present
@@ -277,15 +288,30 @@ def find_or_create_oauth_user(email, name, provider, provider_id):
                         }
                     }
                 )
+                print(f"Added {provider} OAuth info to existing user")
+            
+            # Update email if we have one and the user doesn't
+            if email and not existing_user.get("email"):
+                users_db.update_one(
+                    {"_id": existing_user["_id"]},
+                    {
+                        "$set": {
+                            "email": email,
+                            "email_verified": True,
+                            "updated_at": datetime.utcnow()
+                        }
+                    }
+                )
+                print(f"Updated existing user with email: {email}")
+                existing_user["email"] = email
+            
             return existing_user
         
         # Create new user with OAuth
         now = datetime.utcnow()
         new_user = {
             "name": name,
-            "email": email,
             "role": "job_seeker",  # Default role for OAuth users
-            "email_verified": True,  # OAuth providers verify emails
             "oauth_accounts": {
                 provider: {
                     "provider_id": provider_id,
@@ -296,12 +322,26 @@ def find_or_create_oauth_user(email, name, provider, provider_id):
             "updated_at": now
         }
         
+        # Add email fields only if we have an email
+        if email:
+            new_user["email"] = email
+            new_user["email_verified"] = True  # OAuth providers verify emails
+            print(f"Creating new user with email: {email}")
+        else:
+            # Create a placeholder email based on provider and ID for internal use
+            new_user["email"] = f"{provider}_{provider_id}@oauth.placeholder"
+            new_user["email_verified"] = False
+            new_user["email_placeholder"] = True  # Flag to indicate this is a placeholder
+            print(f"Creating new user with placeholder email (no email permission from {provider})")
+        
         result = users_db.insert_one(new_user)
         new_user["_id"] = result.inserted_id
+        print(f"Created new user with ID: {result.inserted_id}")
         return new_user
         
     except Exception as e:
         print(f"Error in find_or_create_oauth_user: {e}")
+        print(f"Parameters: email={email}, name={name}, provider={provider}, provider_id={provider_id}")
         return None
 
 
@@ -508,49 +548,182 @@ def linkedin_callback():
         print(f"Token keys: {token.keys()}")
         print(f"Token scope: {token.get('scope', 'No scope in token')}")
         
-        # Get user info using LinkedIn's OpenID Connect userinfo endpoint
-        print("\nFetching user profile using OpenID Connect userinfo endpoint...")
+        # Get user info using LinkedIn's API endpoints with comprehensive fallback
+        print("\nFetching user profile using LinkedIn API...")
         
         try:
-            print("Making userinfo API request...")
+            print("Attempting userinfo endpoint first...")
             userinfo_resp = oauth.linkedin.get('https://api.linkedin.com/v2/userinfo')
             print(f"Userinfo response status: {userinfo_resp.status_code}")
             
-            if userinfo_resp.status_code != 200:
-                print(f"Failed to get user info from LinkedIn!")
-                print(f"Response status: {userinfo_resp.status_code}")
-                print(f"Response content: {userinfo_resp.text}")
-                return standardize_error_response("Failed to get user profile", 400)
+            if userinfo_resp.status_code == 200:
+                # Success with userinfo endpoint
+                userinfo_data = userinfo_resp.json()
+                print(f"Userinfo data received: {list(userinfo_data.keys())}")
+                
+                provider_id = userinfo_data.get('sub')
+                name = userinfo_data.get('name', '')
+                email = userinfo_data.get('email')
+                
+                # Fallback to individual name fields if full name not available
+                if not name:
+                    given_name = userinfo_data.get('given_name', '')
+                    family_name = userinfo_data.get('family_name', '')
+                    if given_name and family_name:
+                        name = f"{given_name} {family_name}"
+                    elif given_name:
+                        name = given_name
+                    elif family_name:
+                        name = family_name
+                
+                print(f"Extracted from userinfo - Email: {email}, Name: {name}, Provider ID: {provider_id}")
+                
+            elif userinfo_resp.status_code == 403:
+                print("Userinfo endpoint not accessible (403), trying traditional endpoints...")
+                
+                # Try traditional LinkedIn v2 API endpoints
+                print("Attempting profile from v2/me...")
+                profile_resp = oauth.linkedin.get('https://api.linkedin.com/v2/me')
+                print(f"Profile response status: {profile_resp.status_code}")
+                
+                if profile_resp.status_code == 200:
+                    profile_data = profile_resp.json()
+                    print(f"Profile data received: {list(profile_data.keys())}")
+                    
+                    # Extract profile information
+                    provider_id = profile_data.get('id')
+                    name = ''
+                    
+                    # Build name from LinkedIn profile (v2 API format)
+                    if 'firstName' in profile_data and 'localized' in profile_data['firstName']:
+                        localized_first = profile_data['firstName']['localized']
+                        first_name = next(iter(localized_first.values())) if localized_first else ''
+                    else:
+                        first_name = ''
+                    
+                    if 'lastName' in profile_data and 'localized' in profile_data['lastName']:
+                        localized_last = profile_data['lastName']['localized']
+                        last_name = next(iter(localized_last.values())) if localized_last else ''
+                    else:
+                        last_name = ''
+                    
+                    # Combine names
+                    if first_name and last_name:
+                        name = f"{first_name} {last_name}"
+                    elif first_name:
+                        name = first_name
+                    elif last_name:
+                        name = last_name
+                    
+                    # Get email from separate endpoint
+                    print("Attempting email from v2/emailAddress...")
+                    email_resp = oauth.linkedin.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))')
+                    print(f"Email response status: {email_resp.status_code}")
+                    
+                    if email_resp.status_code == 200:
+                        email_data = email_resp.json()
+                        print(f"Email data received: {list(email_data.keys())}")
+                        
+                        # Extract email from response
+                        email = None
+                        if 'elements' in email_data and email_data['elements']:
+                            email_element = email_data['elements'][0]
+                            if 'handle~' in email_element and 'emailAddress' in email_element['handle~']:
+                                email = email_element['handle~']['emailAddress']
+                    
+                    elif email_resp.status_code == 403:
+                        print("Email endpoint also giving 403 - LinkedIn app has very limited permissions")
+                        email = None  # Will handle this below
+                    else:
+                        print(f"Email endpoint unexpected status: {email_resp.status_code}")
+                        email = None
+                    
+                    print(f"Extracted from v2 APIs - Email: {email}, Name: {name}, Provider ID: {provider_id}")
+                    
+                elif profile_resp.status_code == 403:
+                    print("Traditional profile endpoint also giving 403!")
+                    print("This indicates LinkedIn app has very restricted permissions")
+                    print("Attempting to extract basic info from token or create minimal user...")
+                    
+                    # Last resort: try to extract info from token or create minimal user
+                    # LinkedIn still provides some basic info in certain contexts
+                    provider_id = None
+                    name = "LinkedIn User"  # Generic fallback
+                    email = None
+                    
+                    # Try to get any identifier from token
+                    if 'sub' in token:
+                        provider_id = token.get('sub')
+                        print(f"Found sub in token: {provider_id}")
+                    elif 'user_id' in token:
+                        provider_id = token.get('user_id')
+                        print(f"Found user_id in token: {provider_id}")
+                    else:
+                        # Generate a temporary ID based on client ID and timestamp
+                        import time
+                        provider_id = f"linkedin_user_{int(time.time())}"
+                        print(f"Generated temporary provider ID: {provider_id}")
+                    
+                    # Check if token contains any user info
+                    for key in ['name', 'email', 'given_name', 'family_name']:
+                        if key in token:
+                            if key == 'name':
+                                name = token[key]
+                            elif key == 'email':
+                                email = token[key]
+                            elif key in ['given_name', 'family_name'] and name == "LinkedIn User":
+                                if key == 'given_name':
+                                    name = token[key]
+                    
+                    print(f"Minimal user data - Email: {email}, Name: {name}, Provider ID: {provider_id}")
+                    
+                    if not provider_id:
+                        print("Cannot create user without any identifier!")
+                        return standardize_error_response(
+                            "LinkedIn authentication failed - insufficient permissions. "
+                            "Please contact support or try a different sign-in method.", 
+                            400
+                        )
+                
+                else:
+                    print(f"Profile endpoint unexpected status: {profile_resp.status_code}")
+                    print(f"Response: {profile_resp.text}")
+                    return standardize_error_response("Failed to get user profile", 400)
             
-            userinfo_data = userinfo_resp.json()
-            print(f"Userinfo data received: {list(userinfo_data.keys())}")
+            else:
+                print(f"Userinfo endpoint unexpected status: {userinfo_resp.status_code}")
+                print(f"Response: {userinfo_resp.text}")
+                return standardize_error_response("Failed to get user information", 400)
             
-            # Extract user information from userinfo response (OpenID Connect format)
-            provider_id = userinfo_data.get('sub')  # Subject identifier in OpenID Connect
-            name = userinfo_data.get('name', '')    # Full name
-            email = userinfo_data.get('email')      # Email address
+            # Validate we have minimum required information
+            if not provider_id:
+                print("Critical error: No provider ID obtained from any source!")
+                return standardize_error_response(
+                    "LinkedIn authentication failed - unable to identify user. "
+                    "Please contact support.", 
+                    400
+                )
             
-            # Fallback to individual name fields if full name not available
+            # Email is optional - some LinkedIn apps don't have email permission
+            if not email:
+                print("Warning: No email obtained - this may limit some features")
+                # You might want to generate a placeholder email or handle this case
+                # email = f"{provider_id}@linkedin.placeholder"
+            
+            # Name is optional but recommended
             if not name:
-                given_name = userinfo_data.get('given_name', '')
-                family_name = userinfo_data.get('family_name', '')
-                if given_name and family_name:
-                    name = f"{given_name} {family_name}"
-                elif given_name:
-                    name = given_name
-                elif family_name:
-                    name = family_name
+                name = "LinkedIn User"
+                print("Warning: No name obtained - using fallback")
             
-            print(f"Extracted info - Email: {email}, Name: {name}, Provider ID: {provider_id}")
-            
-            if not email or not provider_id:
-                print("Missing required user information!")
-                return standardize_error_response("Incomplete user information from LinkedIn", 400)
+            print(f"Final user data - Email: {email}, Name: {name}, Provider ID: {provider_id}")
             
         except Exception as e:
-            print(f"Exception during userinfo API request: {e}")
+            print(f"Exception during API request: {e}")
             print(f"Exception type: {type(e)}")
-            return standardize_error_response("Failed to retrieve user information", 500)
+            return standardize_error_response(
+                "LinkedIn authentication failed due to API error. Please try again.", 
+                500
+            )
         
         # Find or create user
         print("\nAttempting to find or create user...")

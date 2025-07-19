@@ -40,19 +40,20 @@ def test_linkedin_oauth_config():
     
     print("\n🔍 Code Configuration Check:")
     
-    # Check for correct OpenID Connect scopes
-    if 'openid profile email' in auth_content:
-        print("   ✅ Correct OpenID Connect scopes found")
-    elif 'profile email' in auth_content:
-        print("   ⚠️  Basic scopes found, but missing 'openid' scope")
-        print("       Update to: 'openid profile email'")
+    # Check for correct scopes
+    if "'scope': 'profile email'" in auth_content:
+        print("   ✅ Correct modern scopes found (profile email)")
+    elif 'openid profile email' in auth_content:
+        print("   ⚠️  Full OpenID Connect scopes found")
+        print("       Consider using 'profile email' to avoid JWT validation issues")
     elif 'r_liteprofile' in auth_content or 'r_emailaddress' in auth_content:
         print("   ❌ Deprecated scopes found!")
         print("       Update from: 'r_liteprofile r_emailaddress'")
-        print("       Update to: 'openid profile email'")
+        print("       Update to: 'profile email'")
         return False
     else:
         print("   ❌ No LinkedIn scopes found in configuration")
+        print(f"       Debug: Searching for scopes in {len(auth_content)} characters")
         return False
     
     # Check for correct userinfo endpoint
@@ -132,7 +133,7 @@ def generate_test_authorization_url():
         'client_id': client_id,
         'redirect_uri': 'http://localhost:5000/auth/linkedin/callback',
         'state': 'test_state_123',
-        'scope': 'openid profile email'
+        'scope': 'profile email'  # Reliable scopes without JWT complications
     }
     
     auth_url = f"https://www.linkedin.com/oauth/v2/authorization?{urlencode(params)}"
@@ -143,7 +144,7 @@ def generate_test_authorization_url():
     print("   1. Copy the URL above")
     print("   2. Open it in a browser")
     print("   3. You should see LinkedIn's authorization page")
-    print("   4. The page should request 'openid', 'profile', and 'email' permissions")
+    print("   4. The page should request 'profile' and 'email' permissions")
     print("   5. After authorization, you'll be redirected to your callback URL")
     
     return auth_url
@@ -160,8 +161,8 @@ def provide_setup_checklist():
         "✅ Added redirect URI: http://localhost:5000/auth/linkedin/callback",
         "✅ Copied Client ID to LINKEDIN_OAUTH_CLIENT_ID environment variable",
         "✅ Copied Client Secret to LINKEDIN_OAUTH_CLIENT_SECRET environment variable",
-        "✅ Updated code to use 'openid profile email' scopes",
-        "✅ Updated code to use userinfo endpoint"
+        "✅ Updated code to use 'profile email' scopes (reliable approach)",
+        "✅ Updated code to use userinfo endpoint with fallback"
     ]
     
     print("📋 Required setup steps:")
