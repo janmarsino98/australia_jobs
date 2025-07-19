@@ -4,8 +4,11 @@ import AppLayout from "./components/molecules/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import EmailVerificationPage from "./pages/EmailVerificationPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import DashboardPage from "./pages/DashboardPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import JobPage from "./pages/JobPage";
 import JobsPage from "./pages/JobsPage";
 import MainLanding from "./pages/MainLand";
@@ -38,6 +41,14 @@ const routes = createBrowserRouter([
       {
         path: "/reset-password",
         element: <ResetPasswordPage />,
+      },
+      {
+        path: "/verify-email",
+        element: <EmailVerificationPage />,
+      },
+      {
+        path: "/oauth/callback",
+        element: <OAuthCallbackPage />,
       },
       {
         path: "/unauthorized",
@@ -80,6 +91,14 @@ const routes = createBrowserRouter([
         element: (
           <AuthGuard>
             <DashboardPage />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: "/profile",
+        element: (
+          <AuthGuard>
+            <UserProfilePage />
           </AuthGuard>
         ),
       },

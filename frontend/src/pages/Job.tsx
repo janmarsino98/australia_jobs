@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import MainHeader from "../components/molecules/MainHeader";
 import httpClient from "../httpClient";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
+import JobApplicationModal from "../components/molecules/JobApplicationModal";
 import { JobHeader } from "../components/molecules/JobHeader";
 import { JobDescription } from "../components/molecules/JobDescription";
 
@@ -29,6 +30,7 @@ interface JobData {
 const JobDetailsPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [job, setJob] = useState<JobData | null>(null);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchJob = async () => {
@@ -49,8 +51,11 @@ const JobDetailsPage: React.FC = () => {
   };
 
   const handleApply = () => {
-    // TODO: Implement job application logic
-    console.log("Applying for job:", job?.title);
+    setIsApplicationModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsApplicationModalOpen(false);
   };
 
   if (!job) {
@@ -115,6 +120,21 @@ const JobDetailsPage: React.FC = () => {
         </div>
         <NoResumeAlert />
       </main>
+
+      {/* Job Application Modal */}
+      {job && (
+        <JobApplicationModal
+          isOpen={isApplicationModalOpen}
+          onClose={handleCloseModal}
+          job={{
+            id: job._id,
+            title: job.title,
+            firm: job.firm,
+            location: job.location,
+            jobtype: job.jobtype,
+          }}
+        />
+      )}
     </div>
   );
 };

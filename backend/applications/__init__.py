@@ -1,0 +1,1 @@
+# Applications module for job application management 

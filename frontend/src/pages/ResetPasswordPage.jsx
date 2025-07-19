@@ -34,25 +34,63 @@ const ResetPasswordPage = () => {
 
   const onRequestSubmit = async (data) => {
     try {
-      // TODO: Implement password reset request
+      console.log('📧 Requesting password reset for:', data.email);
+      const response = await fetch(`http://localhost:5000/auth/reset-password/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: data.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to send reset code');
+      }
+
       setEmail(data.email);
       setStep("reset");
+      console.log('✅ Password reset code sent successfully');
     } catch (error) {
+      console.error('❌ Password reset request failed:', error);
       requestForm.setError("root", {
-        message: error.response?.data?.message || "Failed to send reset code. Please try again.",
+        message: error.message || "Failed to send reset code. Please try again.",
       });
     }
   };
 
   const onResetSubmit = async (data) => {
     try {
-      // TODO: Implement password reset
+      console.log('🔐 Resetting password with code');
+      const response = await fetch(`http://localhost:5000/auth/reset-password/confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: email,
+          code: data.code,
+          newPassword: data.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to reset password');
+      }
+
+      console.log('✅ Password reset successful');
       navigate("/login", { 
         state: { message: "Password reset successful. Please login with your new password." }
       });
     } catch (error) {
+      console.error('❌ Password reset failed:', error);
       resetForm.setError("root", {
-        message: error.response?.data?.message || "Failed to reset password. Please try again.",
+        message: error.message || "Failed to reset password. Please try again.",
       });
     }
   };

@@ -37,8 +37,12 @@ const SignupPage = () => {
   const onSubmit = async (data: any) => {
     try {
       await registerUser(data.name, data.email, data.password, data.role);
-      navigate('/dashboard', {
-        state: { message: 'Welcome! Your account has been created successfully.' }
+      // Redirect to email verification page instead of dashboard
+      navigate('/verify-email', {
+        state: { 
+          message: 'Account created successfully! Please check your email to verify your account.',
+          email: data.email
+        }
       });
     } catch (error: any) {
       setError("root", {

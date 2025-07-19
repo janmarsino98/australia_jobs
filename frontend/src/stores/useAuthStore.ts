@@ -112,9 +112,10 @@ const useAuthStore = create<AuthState>()(
 
             loginWithGoogle: async () => {
                 try {
-                    // For session-based auth, this would need to be implemented differently
-                    // Typically you'd redirect to the OAuth endpoint and handle the callback
-                    throw new Error('Google login not implemented for session-based auth');
+                    console.log('🔄 Initiating Google OAuth login...');
+                    // For session-based OAuth, redirect to backend OAuth initiation endpoint
+                    const redirectUrl = `${config.apiBaseUrl}/auth/google/login`;
+                    window.location.href = redirectUrl;
                 } catch (error) {
                     console.error('❌ Google login failed:', error);
                     throw error;
@@ -123,8 +124,10 @@ const useAuthStore = create<AuthState>()(
 
             loginWithLinkedIn: async () => {
                 try {
-                    // For session-based auth, this would need to be implemented differently
-                    throw new Error('LinkedIn login not implemented for session-based auth');
+                    console.log('🔄 Initiating LinkedIn OAuth login...');
+                    // For session-based OAuth, redirect to backend OAuth initiation endpoint  
+                    const redirectUrl = `${config.apiBaseUrl}/auth/linkedin/login`;
+                    window.location.href = redirectUrl;
                 } catch (error) {
                     console.error('❌ LinkedIn login failed:', error);
                     throw error;
