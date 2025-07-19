@@ -1,168 +1,178 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../types/store';
-
-interface AuthResponse {
-    user: User;
-    token: string;
-    refreshToken: string;
-    type: 'social_auth_success';
-}
+import config from '../config';
+import httpClient from '../httpClient';
 
 interface AuthState {
     user: User | null;
-    token: string | null;
-    refreshToken: string | null;
     isAuthenticated: boolean;
     login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+    register: (name: string, email: string, password: string, role: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     loginWithLinkedIn: () => Promise<void>;
     logout: () => void;
-    refreshSession: () => Promise<void>;
+    checkSession: () => Promise<boolean>;
+    initialize: () => void;
 }
 
 const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             user: null,
-            token: null,
-            refreshToken: null,
             isAuthenticated: false,
+
+            // Initialize authentication state by checking session
+            initialize: async () => {
+                console.log('🔄 Auth store initializing...');
+                try {
+                    const isValid = await get().checkSession();
+                    console.log('🔄 Session check result:', isValid);
+                } catch (error) {
+                    console.error('❌ Session check failed during initialization:', error);
+                    set({ user: null, isAuthenticated: false });
+                }
+            },
+
+            // Check if current session is valid
+            checkSession: async () => {
+                try {
+                    console.log('🔍 Checking session validity...');
+                    const response = await httpClient.get(`${config.apiBaseUrl}/auth/@me`);
+
+                    if (response.data) {
+                        console.log('✅ Session valid, user found:', response.data.email);
+                        set({
+                            user: {
+                                id: response.data._id,
+                                email: response.data.email,
+                                name: response.data.name,
+                                role: response.data.role,
+                            },
+                            isAuthenticated: true,
+                        });
+                        return true;
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('❌ Session check failed:', error);
+                    set({ user: null, isAuthenticated: false });
+                    return false;
+                }
+            },
 
             login: async (email: string, password: string, rememberMe = false) => {
                 try {
-                    // TODO: Implement actual login API call
-                    const response = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password, rememberMe }),
+                    console.log('🔐 Attempting login for:', email);
+                    const response = await httpClient.post(`${config.apiBaseUrl}/auth/login`, {
+                        email,
+                        password,
+                        rememberMe,
                     });
 
-                    if (!response.ok) {
-                        throw new Error('Login failed');
+                    if (response.data && response.data.user) {
+                        console.log('✅ Login successful:', { userId: response.data.user.id });
+                        set({
+                            user: response.data.user,
+                            isAuthenticated: true,
+                        });
+                    } else {
+                        throw new Error('Invalid response from server');
                     }
-
-                    const data = await response.json();
-                    set({
-                        user: data.user,
-                        token: data.token,
-                        refreshToken: data.refreshToken,
-                        isAuthenticated: true,
-                    });
                 } catch (error) {
+                    console.error('❌ Login failed:', error);
+                    throw error;
+                }
+            },
+
+            register: async (name: string, email: string, password: string, role: string) => {
+                try {
+                    console.log('📝 Attempting registration for:', email);
+                    const response = await httpClient.post(`${config.apiBaseUrl}/auth/register`, {
+                        name,
+                        email,
+                        password,
+                        role,
+                    });
+
+                    if (response.data && response.data.user) {
+                        console.log('✅ Registration successful:', { userId: response.data.user.id });
+                        set({
+                            user: response.data.user,
+                            isAuthenticated: true,
+                        });
+                    } else {
+                        throw new Error('Invalid response from server');
+                    }
+                } catch (error) {
+                    console.error('❌ Registration failed:', error);
                     throw error;
                 }
             },
 
             loginWithGoogle: async () => {
                 try {
-                    // TODO: Implement Google OAuth flow
-                    const popup = window.open(
-                        '/api/auth/google',
-                        'Google Login',
-                        'width=500,height=600'
-                    );
-
-                    const result = await new Promise<AuthResponse>((resolve, reject) => {
-                        window.addEventListener('message', (event) => {
-                            if (event.data.type === 'social_auth_success') {
-                                resolve(event.data as AuthResponse);
-                            } else if (event.data.type === 'social_auth_error') {
-                                reject(new Error(event.data.error));
-                            }
-                        });
-                    });
-
-                    set({
-                        user: result.user,
-                        token: result.token,
-                        refreshToken: result.refreshToken,
-                        isAuthenticated: true,
-                    });
+                    // For session-based auth, this would need to be implemented differently
+                    // Typically you'd redirect to the OAuth endpoint and handle the callback
+                    throw new Error('Google login not implemented for session-based auth');
                 } catch (error) {
+                    console.error('❌ Google login failed:', error);
                     throw error;
                 }
             },
 
             loginWithLinkedIn: async () => {
                 try {
-                    // TODO: Implement LinkedIn OAuth flow
-                    const popup = window.open(
-                        '/api/auth/linkedin',
-                        'LinkedIn Login',
-                        'width=500,height=600'
-                    );
-
-                    const result = await new Promise<AuthResponse>((resolve, reject) => {
-                        window.addEventListener('message', (event) => {
-                            if (event.data.type === 'social_auth_success') {
-                                resolve(event.data as AuthResponse);
-                            } else if (event.data.type === 'social_auth_error') {
-                                reject(new Error(event.data.error));
-                            }
-                        });
-                    });
-
-                    set({
-                        user: result.user,
-                        token: result.token,
-                        refreshToken: result.refreshToken,
-                        isAuthenticated: true,
-                    });
+                    // For session-based auth, this would need to be implemented differently
+                    throw new Error('LinkedIn login not implemented for session-based auth');
                 } catch (error) {
+                    console.error('❌ LinkedIn login failed:', error);
                     throw error;
                 }
             },
 
-            logout: () => {
-                set({
-                    user: null,
-                    token: null,
-                    refreshToken: null,
-                    isAuthenticated: false,
-                });
-            },
-
-            refreshSession: async () => {
+            logout: async () => {
                 try {
-                    const refreshToken = useAuthStore.getState().refreshToken;
-                    if (!refreshToken) {
-                        throw new Error('No refresh token available');
+                    console.log('🚪 Logging out user');
+                    // Call backend logout endpoint if it exists
+                    try {
+                        await httpClient.post(`${config.apiBaseUrl}/auth/logout`);
+                    } catch (error) {
+                        // Logout endpoint might not exist, that's okay
+                        console.log('No logout endpoint, clearing session locally');
                     }
 
-                    const response = await fetch('/api/auth/refresh', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ refreshToken }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Session refresh failed');
-                    }
-
-                    const data = await response.json();
-                    set({
-                        token: data.token,
-                        refreshToken: data.refreshToken,
-                    });
-                } catch (error) {
                     set({
                         user: null,
-                        token: null,
-                        refreshToken: null,
                         isAuthenticated: false,
                     });
-                    throw error;
+                } catch (error) {
+                    console.error('❌ Logout error:', error);
+                    // Clear local state anyway
+                    set({
+                        user: null,
+                        isAuthenticated: false,
+                    });
                 }
             },
         }),
         {
             name: 'auth-storage',
             partialize: (state) => ({
-                token: state.token,
-                refreshToken: state.refreshToken,
+                // Only persist user data, not authentication state
+                // Authentication state will be checked on app load via session
                 user: state.user,
             }),
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    console.log('💾 Store rehydrated:', {
+                        hasUser: !!state.user,
+                    });
+                    // Don't set isAuthenticated from storage
+                    // It will be set by initialize() which checks the session
+                    state.isAuthenticated = false;
+                }
+            },
         }
     )
 );

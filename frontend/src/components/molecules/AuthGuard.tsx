@@ -12,8 +12,9 @@ interface AuthGuardProps {
 const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user, refreshSession } = useAuthStore();
+  const { isAuthenticated, user, checkSession } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // If authentication is disabled for testing, bypass all auth checks
   if (config.disableAuthForTesting) {
@@ -23,21 +24,42 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('🛡️ AuthGuard checking authentication...');
+        
+        // If not authenticated, try to check session
         if (!isAuthenticated) {
-          await refreshSession();
+          const sessionValid = await checkSession();
+          if (!sessionValid) {
+            console.log('🚫 Session invalid, redirecting to login');
+            navigate('/login', {
+              state: { from: location.pathname }
+            });
+            return;
+          }
         }
+        
+        console.log('✅ AuthGuard: User is authenticated');
       } catch (error) {
+        console.error('❌ AuthGuard: Session check failed:', error);
         navigate('/login', {
           state: { from: location.pathname }
         });
+        return;
       } finally {
         setIsLoading(false);
+        setAuthChecked(true);
       }
     };
 
-    checkAuth();
-  }, [isAuthenticated, navigate, location, refreshSession]);
+    // Only run auth check once per mount or when authentication status changes
+    if (!authChecked) {
+      checkAuth();
+    } else {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, authChecked, checkSession, navigate, location.pathname]);
 
+  // Show loading while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,6 +68,7 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
     );
   }
 
+  // If still not authenticated after checks, redirect to login
   if (!isAuthenticated) {
     navigate('/login', {
       state: { from: location.pathname }
@@ -53,7 +76,7 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
     return null;
   }
 
-  // Skip role check if no roles are required or user has no role
+  // Check user roles if specified
   if (allowedRoles.length > 0 && user?.role && !allowedRoles.includes(user.role)) {
     navigate('/unauthorized');
     return null;

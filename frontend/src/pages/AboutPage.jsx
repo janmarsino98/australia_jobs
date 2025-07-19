@@ -1,6 +1,5 @@
 import { Button } from "../components/ui/button";
 import { Users, BarChart, Globe, Heart } from "lucide-react";
-import MainHeader from "../components/molecules/MainHeader";
 import LandingCard from "../components/molecules/LandingCard";
 import { useNavigate } from "react-router-dom";
 
@@ -11,8 +10,6 @@ export default function AboutPage() {
   };
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainHeader />
-
       <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
         <div className="max-w-4xl mx-auto space-y-12">
           <section className="text-center">

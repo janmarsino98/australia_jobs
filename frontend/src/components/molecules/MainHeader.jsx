@@ -1,4 +1,4 @@
-import logo from "../../imgs/logo.png";
+import logo from "../../imgs/logo.svg";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const MainHeader = () => {

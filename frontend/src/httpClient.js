@@ -48,17 +48,9 @@ httpClient.interceptors.response.use(
         if (error.response) {
             // Handle specific error cases
             switch (error.response.status) {
-                case 401:
-                    // Unauthorized - redirect to login
-                    window.location.href = '/login';
-                    break;
                 case 403:
                     // Forbidden - could be CSRF token mismatch
                     console.error('Access forbidden. Possible CSRF token mismatch.');
-                    break;
-                case 419:
-                    // Session expired
-                    window.location.href = '/login';
                     break;
                 case 500:
                     console.error('Server error:', error.response.data);

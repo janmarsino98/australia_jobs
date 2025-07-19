@@ -121,7 +121,34 @@ export const profileUpdateSchema = z.object({
         .optional()
 });
 
+// Signup form schema
+export const signupFormSchema = z.object({
+    name: z.string()
+        .min(2, "Name must be at least 2 characters")
+        .max(100, "Name cannot exceed 100 characters")
+        .transform(sanitizeString),
+    email: z.string()
+        .email("Please enter a valid email address")
+        .transform(sanitizeString),
+    password: z.string()
+        .min(8, "Password must be at least 8 characters")
+        .max(100, "Password cannot exceed 100 characters")
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+            "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"),
+    confirmPassword: z.string(),
+    role: z.enum(['job_seeker', 'employer'], {
+        required_error: "Please select your role"
+    }),
+    acceptTerms: z.boolean().refine(val => val === true, {
+        message: "You must accept the terms and conditions"
+    })
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
 export type LoginFormValues = z.infer<typeof loginFormSchema>
+export type SignupFormValues = z.infer<typeof signupFormSchema>
 export type ResumeUploadValues = z.infer<typeof resumeUploadSchema>
 export type PaymentFormValues = z.infer<typeof paymentFormSchema>
 export type JobSearchValues = z.infer<typeof jobSearchSchema>

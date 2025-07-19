@@ -10,6 +10,16 @@ stripe.api_key = 'sk_test_51Q83DKRvr2lf43Pu7rxqSkBy9NfqFLffJ18wSKJphsL6fozICNjJ4
 cities_bp = Blueprint("cities_bp", __name__)
 cities_db = mongo.db.cities
 
+@cities_bp.route("/", methods=["GET"])
+def get_cities():
+    """Root route for /cities - returns all cities"""
+    cities = cities_db.find({})
+    final_cities = []
+    for city in cities:
+        city["_id"] = str(city["_id"])
+        final_cities.append(city)
+    return jsonify(final_cities)
+
 @cities_bp.route("/add_all", methods=["POST"])
 def add_all_cities():
     data = request.get_json()
@@ -27,7 +37,7 @@ def get_all_cities():
         final_cities.append(city)
     return jsonify(final_cities)
 
-@cities_bp.route("get_main", methods=["GET"])
+@cities_bp.route("/get_main", methods=["GET"])
 def get_main_cities():
     cities = ["Sydney", "Melbourne", "Brisbane", "Canberra"]
     result = cities_db.find({"city": {"$in": cities}})

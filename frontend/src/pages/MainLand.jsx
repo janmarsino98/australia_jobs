@@ -1,5 +1,4 @@
 import LandingCard from "../components/molecules/LandingCard";
-import MainHeader from "../components/molecules/MainHeader";
 import { useState, useEffect } from "react";
 import httpClient from "@/httpClient";
 
@@ -38,7 +37,6 @@ export default function Component() {
   ];
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainHeader />
       <main className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-white to-gray-100">
         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-gray-800">
           Start your career in <span className="text-blue-500">Australia</span>
@@ -59,24 +57,6 @@ export default function Component() {
           ))}
         </div>
       </main>
-      <footer className="bg-gray-800 text-white py-8 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center">
-          <div className="text-sm mb-4 sm:mb-0">
-            © 2024 AusJobs. All rights reserved.
-          </div>
-          <div className="flex space-x-4">
-            <a href="#" className="text-sm hover:text-blue-300">
-              Privacy
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Terms
-            </a>
-            <a href="#" className="text-sm hover:text-blue-300">
-              Cookies
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

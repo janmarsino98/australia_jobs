@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import httpClient from "../httpClient";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -16,7 +16,6 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { Search, MapPin, Briefcase, Clock, DollarSign, Filter, ChevronDown, ChevronUp, Bookmark } from "lucide-react";
-import MainHeader from "../components/molecules/MainHeader";
 import SearchHistory from "../components/molecules/SearchHistory";
 import SearchSuggestions from "../components/molecules/SearchSuggestions";
 import SavedSearches from "../components/molecules/SavedSearches";
@@ -29,6 +28,48 @@ import { jobSearchSchema } from "../lib/validations/forms";
 import useSearchHistoryStore from "../stores/useSearchHistoryStore";
 import useSavedSearchesStore from "../stores/useSavedSearchesStore";
 import useJobApplicationStore from "../stores/useJobApplicationStore";
+
+// Utility function to format location consistently
+const formatLocation = (location) => {
+  if (!location) return '';
+  
+  if (typeof location === 'object') {
+    if (location.city && location.state) {
+      return `${location.city}, ${location.state}`;
+    }
+    if (location.city) {
+      return location.city;
+    }
+    // If it's an object but missing expected properties, return empty string
+    return '';
+  }
+  
+  return String(location);
+};
+
+// Utility function to safely render job description
+const formatDescription = (description) => {
+  if (!description) return 'No description available';
+  
+  if (typeof description === 'object') {
+    // If description is an object with structured data, return the introduction
+    if (description.introduction) {
+      return description.introduction;
+    }
+    // If it's an object but missing introduction, try to create a summary
+    const parts = [];
+    if (description.responsibilities && description.responsibilities.length > 0) {
+      parts.push(description.responsibilities[0]);
+    }
+    if (description.requirements && description.requirements.length > 0) {
+      parts.push(description.requirements[0]);
+    }
+    return parts.length > 0 ? parts.join(' ') : 'View job details for more information';
+  }
+  
+  // If it's a string, return it as is
+  return String(description);
+};
 
 export default function JobsPage() {
   const navigate = useNavigate();
@@ -66,6 +107,17 @@ export default function JobsPage() {
 
   const watchedTitle = watch("title");
   const watchedLocation = watch("location");
+  
+  // Debug logging for location value
+  React.useEffect(() => {
+    if (watchedLocation) {
+      console.log('🔍 Current location value:', {
+        type: typeof watchedLocation,
+        value: watchedLocation,
+        formatted: formatLocation(watchedLocation)
+      });
+    }
+  }, [watchedLocation]);
 
   const fetchUser = async () => {
     try {
@@ -85,7 +137,7 @@ export default function JobsPage() {
       const endpoint = new URL("http://localhost:5000/jobs/get");
       
       if (data.title) endpoint.searchParams.append("title", data.title);
-      if (data.location) endpoint.searchParams.append("location", data.location);
+      if (data.location) endpoint.searchParams.append("location", formatLocation(data.location));
       if (data.categories?.length) {
         endpoint.searchParams.append("categories", data.categories.join(","));
       }
@@ -103,7 +155,7 @@ export default function JobsPage() {
       if (data.title || data.location) {
         addSearch({
           query: data.title || "",
-          location: data.location || "",
+          location: formatLocation(data.location) || "",
           resultsCount: resp.data.length,
         });
       }
@@ -118,9 +170,11 @@ export default function JobsPage() {
   const fetchCities = async () => {
     try {
       const resp = await httpClient.get("http://localhost:5000/cities/get_main");
-      setCities(resp.data);
+      // Ensure cities is always an array
+      setCities(Array.isArray(resp.data) ? resp.data : []);
     } catch (error) {
       console.error("Error trying to get cities: ", error);
+      setCities([]); // Set empty array on error
     }
   };
 
@@ -139,7 +193,7 @@ export default function JobsPage() {
     addApplication({
       jobTitle: job.title,
       company: job.firm || 'Company',
-      location: job.location,
+      location: formatLocation(job.location),
       salary: job.remuneration_amount ? {
         min: job.remuneration_amount,
         max: job.remuneration_amount,
@@ -154,9 +208,9 @@ export default function JobsPage() {
 
   const handleSearchHistorySelect = (query, location) => {
     setValue("title", query);
-    if (location) setValue("location", location);
+    if (location) setValue("location", formatLocation(location));
     // Trigger search with the selected history item
-    onSubmit({ title: query, location: location || "" });
+    onSubmit({ title: query, location: formatLocation(location) || "" });
   };
 
   const handleTitleSuggestionSelect = (suggestion) => {
@@ -187,12 +241,23 @@ export default function JobsPage() {
     // Set all form values based on the saved search
     Object.keys(filters).forEach(key => {
       if (filters[key] !== undefined) {
-        setValue(key, filters[key]);
+        // Special handling for location to ensure it's always a string
+        if (key === 'location') {
+          setValue(key, formatLocation(filters[key]));
+        } else {
+          setValue(key, filters[key]);
+        }
       }
     });
     
+    // Ensure location is formatted for search submission
+    const formattedFilters = {
+      ...filters,
+      location: formatLocation(filters.location)
+    };
+    
     // Trigger the search
-    onSubmit(filters);
+    onSubmit(formattedFilters);
   };
 
   const handleProfileAction = (action) => {
@@ -252,7 +317,6 @@ export default function JobsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainHeader />
       <NoResumeAlert />
 
       <main className="container mx-auto px-4 py-8">
@@ -294,17 +358,24 @@ export default function JobsPage() {
                       setValue("location", value);
                       setShowLocationSuggestions(false);
                     }}
-                    value={watch("location")}
+                    value={formatLocation(watch("location"))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
+                      {cities.map((city) => {
+                        // Handle both string and object city formats
+                        const cityKey = typeof city === 'object' ? city._id : city;
+                        const cityValue = typeof city === 'object' ? `${city.city}, ${city.state}` : city;
+                        const cityDisplay = typeof city === 'object' ? `${city.city}, ${city.state}` : city;
+                        
+                        return (
+                          <SelectItem key={cityKey} value={cityValue}>
+                            {cityDisplay}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -541,13 +612,13 @@ export default function JobsPage() {
                   </span>
                   <span className="flex items-center">
                     <MapPin className="w-4 h-4 mr-1" />
-                    {job.location}
+                    {formatLocation(job.location)}
                   </span>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 mb-4 line-clamp-3">
-                  {job.description}
+                  {formatDescription(job.description)}
                 </p>
                 <div className="flex items-center justify-between text-sm mb-4">
                   <span className="flex items-center text-gray-500">

@@ -23,6 +23,14 @@ def create_app():
     server_session.init_app(app)
     CORS(app, supports_credentials=True)
     
+    # Test MongoDB connection
+    try:
+        # The ping command is cheap and does not require auth
+        mongo.db.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+    except Exception as e:
+        print(f"Failed to connect to MongoDB: {e}")
+    
     global fs
     fs = gridfs.GridFS(mongo.db)
 
