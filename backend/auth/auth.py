@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, session, redirect, url_for
+from flask import Blueprint, jsonify, request, session, redirect, url_for, Response
 from extensions import mongo, bcrypt  # Import from extensions
 from flask_pymongo import ObjectId
 from datetime import datetime
@@ -1102,3 +1102,59 @@ def check_verification_status():
     except Exception as e:
         print(f"Error checking verification status: {e}")
         return standardize_error_response("Failed to check verification status", 500)
+
+
+@auth_bp.route('/image-proxy', methods=['GET'])
+def image_proxy():
+    """Proxy endpoint to fetch external images and serve them through our backend"""
+    image_url = request.args.get('url')
+    
+    if not image_url:
+        return jsonify({"error": "URL parameter is required"}), 400
+    
+    # Validate that it's a valid image URL
+    if not image_url.startswith(('http://', 'https://')):
+        return jsonify({"error": "Invalid URL"}), 400
+    
+    try:
+        # Fetch the image from the external URL
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'image/*,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        }
+        
+        response = requests.get(image_url, headers=headers, stream=True, timeout=10)
+        response.raise_for_status()
+        
+        # Check if it's actually an image
+        content_type = response.headers.get('content-type', '')
+        if not content_type.startswith('image/'):
+            return jsonify({"error": "URL does not point to an image"}), 400
+        
+        # Stream the image back to the client
+        def generate():
+            for chunk in response.iter_content(chunk_size=8192):
+                yield chunk
+        
+        return Response(
+            generate(),
+            content_type=content_type,
+            headers={
+                'Cache-Control': 'public, max-age=86400',  # Cache for 24 hours
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            }
+        )
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching image: {e}")
+        return jsonify({"error": "Failed to fetch image"}), 500
+    except Exception as e:
+        print(f"Unexpected error in image proxy: {e}")
+        return jsonify({"error": "Internal server error"}), 500

@@ -4,6 +4,7 @@ import NavIconImg from "../atoms/NavIconImg";
 import NavTextOption from "../atoms/NavTextOption";
 import NavProfileIcon from "../atoms/NavProfileIcon";
 import main_logo from "../../imgs/logo.svg";
+import config from "../../config";
 
 interface NavbarProps {
   user?: {
@@ -29,6 +30,24 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
     if (e.key === 'Enter' || e.key === ' ') {
       handleLogoClick();
     }
+  };
+
+  // Function to get the profile image with proxy support for LinkedIn images
+  const getProfileImageUrl = (profileImage?: string, profilePicture?: string) => {
+    const imageUrl = profileImage || profilePicture;
+    const fallbackImage = "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+    
+    if (!imageUrl) {
+      return fallbackImage;
+    }
+    
+    // Check if it's a LinkedIn image URL
+    if (imageUrl.includes('media.licdn.com') || imageUrl.includes('linkedin.com')) {
+      // Use our image proxy for LinkedIn images
+      return `${config.apiBaseUrl}/auth/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+    }
+    
+    return imageUrl;
   };
 
   return (
@@ -67,21 +86,21 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                 isActive={location.pathname === "/jobs" || location.pathname.startsWith("/job")}
               />
               <NavTextOption 
-                text="Company Reviews" 
-                path="/reviews"
-                isActive={location.pathname === "/reviews"}
+                text="About" 
+                path="/about" 
+                isActive={location.pathname === "/about"}
               />
               <NavTextOption 
-                text="Find Salaries" 
-                path="/salaries"
-                isActive={location.pathname === "/salaries"}
+                text="Pricing" 
+                path="/pricing" 
+                isActive={location.pathname === "/pricing"}
               />
             </nav>
 
             {/* Profile Section */}
             <div 
               className="flex items-center"
-              role="complementary"
+              role="region"
               aria-label="User profile"
             >
               {user ? (
@@ -91,23 +110,17 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                   </span>
                   <div className="h-8 w-px bg-navbar-border hidden lg:block" />
                   <NavProfileIcon
-                    profImg={user.profileImage || user.profile?.profile_picture || "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+                    profImg={getProfileImageUrl(user.profileImage, user.profile?.profile_picture)}
                     alt={`${user.profile?.first_name || user.name} profile picture`}
                   />
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
                   <NavTextOption text="Sign In" path="/login" />
-                  <div className="h-4 w-px bg-navbar-border" />
-                  <NavTextOption 
-                    text="Sign Up" 
-                    path="/signup"
-                    isActive={location.pathname === "/signup"}
-                    isPrimary
-                  />
+                  <div className="h-8 w-px bg-navbar-border" />
+                  <NavTextOption text="Sign Up" path="/signup" />
                 </div>
-              )
-              }
+              )}
             </div>
           </div>
         </div>
