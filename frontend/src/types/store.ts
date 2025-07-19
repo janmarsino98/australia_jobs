@@ -4,6 +4,7 @@ export interface User {
     email: string;
     name: string;
     role: 'jobseeker' | 'employer';
+    email_verified?: boolean;
     phone?: string;
     bio?: string;
     skills?: string[];
@@ -26,6 +27,28 @@ export interface User {
         };
         workArrangement?: string;
     };
+    // New fields from backend
+    profile?: {
+        first_name?: string;
+        last_name?: string;
+        display_name?: string;
+        profile_picture?: string;
+        bio?: string;
+        phone?: string;
+        location?: string;
+        website?: string;
+        linkedin_profile?: string;
+    };
+    oauth_accounts?: {
+        [provider: string]: {
+            connected_at?: string;
+            last_used?: string;
+            provider_id?: string;
+        };
+    };
+    created_at?: string;
+    last_login?: string;
+    is_active?: boolean;
 }
 
 export interface AuthState {

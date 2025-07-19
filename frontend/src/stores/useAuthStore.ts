@@ -26,8 +26,21 @@ const useAuthStore = create<AuthState>()(
             initialize: async () => {
                 console.log('🔄 Auth store initializing...');
                 try {
+                    // First try to restore from storage
+                    const storedUser = get().user;
+                    if (storedUser) {
+                        console.log('📦 Found stored user data:', storedUser.email);
+                        set({ user: storedUser, isAuthenticated: true });
+                    }
+
+                    // Then validate session with backend
                     const isValid = await get().checkSession();
                     console.log('🔄 Session check result:', isValid);
+
+                    if (!isValid) {
+                        console.log('❌ Session invalid, clearing user data');
+                        set({ user: null, isAuthenticated: false });
+                    }
                 } catch (error) {
                     console.error('❌ Session check failed during initialization:', error);
                     set({ user: null, isAuthenticated: false });
@@ -40,14 +53,25 @@ const useAuthStore = create<AuthState>()(
                     console.log('🔍 Checking session validity...');
                     const response = await httpClient.get(`${config.apiBaseUrl}/auth/@me`);
 
-                    if (response.data) {
-                        console.log('✅ Session valid, user found:', response.data.email);
+                    if (response.data && response.data.user) {
+                        const userData = response.data.user;
+                        console.log('✅ Session valid, user found:', userData.email);
+                        console.log('👤 Profile data:', userData.profile);
+
                         set({
                             user: {
-                                id: response.data._id,
-                                email: response.data.email,
-                                name: response.data.name,
-                                role: response.data.role,
+                                id: userData.id,
+                                email: userData.email,
+                                name: userData.name,
+                                role: userData.role,
+                                email_verified: userData.email_verified,
+                                profile: userData.profile,
+                                oauth_accounts: userData.oauth_accounts,
+                                created_at: userData.created_at,
+                                last_login: userData.last_login,
+                                is_active: userData.is_active,
+                                // Map profile image from LinkedIn if available
+                                profileImage: userData.profile?.profile_picture
                             },
                             isAuthenticated: true,
                         });
@@ -71,9 +95,25 @@ const useAuthStore = create<AuthState>()(
                     });
 
                     if (response.data && response.data.user) {
-                        console.log('✅ Login successful:', { userId: response.data.user.id });
+                        const userData = response.data.user;
+                        console.log('✅ Login successful:', { userId: userData.id });
+                        console.log('👤 Profile data:', userData.profile);
+
                         set({
-                            user: response.data.user,
+                            user: {
+                                id: userData.id,
+                                email: userData.email,
+                                name: userData.name,
+                                role: userData.role,
+                                email_verified: userData.email_verified,
+                                profile: userData.profile,
+                                oauth_accounts: userData.oauth_accounts,
+                                created_at: userData.created_at,
+                                last_login: userData.last_login,
+                                is_active: userData.is_active,
+                                // Map profile image from LinkedIn if available
+                                profileImage: userData.profile?.profile_picture
+                            },
                             isAuthenticated: true,
                         });
                     } else {
@@ -96,9 +136,25 @@ const useAuthStore = create<AuthState>()(
                     });
 
                     if (response.data && response.data.user) {
-                        console.log('✅ Registration successful:', { userId: response.data.user.id });
+                        const userData = response.data.user;
+                        console.log('✅ Registration successful:', { userId: userData.id });
+                        console.log('👤 Profile data:', userData.profile);
+
                         set({
-                            user: response.data.user,
+                            user: {
+                                id: userData.id,
+                                email: userData.email,
+                                name: userData.name,
+                                role: userData.role,
+                                email_verified: userData.email_verified,
+                                profile: userData.profile,
+                                oauth_accounts: userData.oauth_accounts,
+                                created_at: userData.created_at,
+                                last_login: userData.last_login,
+                                is_active: userData.is_active,
+                                // Map profile image from LinkedIn if available
+                                profileImage: userData.profile?.profile_picture
+                            },
                             isAuthenticated: true,
                         });
                     } else {

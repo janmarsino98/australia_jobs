@@ -1,6 +1,31 @@
 export interface User {
+    id?: string;
+    _id?: string;
     name: string;
-    // Add other user properties as needed
+    email?: string;
+    role?: string;
+    email_verified?: boolean;
+    profile?: {
+        first_name?: string;
+        last_name?: string;
+        display_name?: string;
+        profile_picture?: string;
+        bio?: string;
+        phone?: string;
+        location?: string;
+        website?: string;
+        linkedin_profile?: string;
+    };
+    oauth_accounts?: {
+        [provider: string]: {
+            connected_at?: string;
+            last_used?: string;
+            provider_id?: string;
+        };
+    };
+    created_at?: string;
+    last_login?: string;
+    is_active?: boolean;
 }
 
 export interface JobCard {

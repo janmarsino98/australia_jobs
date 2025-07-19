@@ -20,6 +20,7 @@ from email_service import (
     send_password_reset_email, send_welcome_email, create_email_verification_token,
     verify_email_verification_token, send_email_verification
 )
+from models import User, UserProfile, OAuthProvider, OAuthAccount
 
 auth_bp = Blueprint("auth_bp", __name__)
 users_db = mongo.db.users
@@ -56,7 +57,7 @@ def init_oauth(app):
         print(f"Error during Google OAuth registration: {str(e)}")
         print(f"Full error details: {repr(e)}")
     
-    # LinkedIn OAuth configuration (Modern scopes without JWT complications)
+    # LinkedIn OAuth configuration with OpenID Connect
     try:
         print("\nAttempting to register LinkedIn OAuth...")
         linkedin = oauth.register(
@@ -67,9 +68,12 @@ def init_oauth(app):
             authorize_url='https://www.linkedin.com/oauth/v2/authorization',
             api_base_url='https://api.linkedin.com/v2/',
             client_kwargs={
-                'scope': 'profile email',  # Reliable scopes without JWT validation complexity
+                'scope': 'openid profile email',  # OpenID Connect scopes for user data
                 'token_endpoint_auth_method': 'client_secret_post'
-            }
+            },
+            # Disable automatic ID token parsing to avoid LinkedIn's JWT validation issues
+            id_token_signed_response_alg=None,
+            userinfo_endpoint='https://api.linkedin.com/v2/userinfo'
         )
         print("LinkedIn OAuth registration successful")
         print(f"Registered client_id: {linkedin.client_id[:10]}..." if linkedin.client_id else "No client_id!")
@@ -107,13 +111,27 @@ def login_user():
         # Create session
         session["user_id"] = str(user["_id"])
         
+        # Get updated user data for consistent response
+        updated_user = users_db.find_one({"_id": user["_id"]})
+        
+        user_response = {
+            "id": str(updated_user["_id"]),
+            "email": updated_user["email"],
+            "name": updated_user.get("name", ""),
+            "role": updated_user.get("role", "job_seeker"),
+            "email_verified": updated_user.get("email_verified", False),
+            "profile": updated_user.get("profile", {}),
+            "oauth_accounts": {
+                provider: {
+                    "connected_at": account.get("connected_at"),
+                    "last_used": account.get("last_used")
+                }
+                for provider, account in updated_user.get("oauth_accounts", {}).items()
+            }
+        }
+        
         return jsonify({
-            "user": {
-                "id": str(user["_id"]),
-                "email": user["email"],
-                "name": user.get("name", ""),
-                "role": user.get("role", "job_seeker")
-            },
+            "user": user_response,
             "token": "session_token",  # Placeholder for token-based auth
             "refreshToken": "refresh_token"  # Placeholder for refresh token
         }), 200
@@ -197,7 +215,9 @@ def register_user():
                 "email": email,
                 "name": name,
                 "role": role,
-                "email_verified": False
+                "email_verified": False,
+                "profile": {},  # Empty profile for new users
+                "oauth_accounts": {}
             },
             "token": "session_token",  # Placeholder for token-based auth
             "refreshToken": "refresh_token",  # Placeholder for refresh token
@@ -237,28 +257,65 @@ def get_current_user():
             session.clear()  # Clear invalid session
             return jsonify({"error": "User not found"}), 404
         
-        # Return consistent user format
-        return jsonify({
-            "user": {
-                "id": str(user["_id"]),
-                "email": user["email"],
-                "name": user.get("name", ""),
-                "role": user.get("role", "job_seeker"),
-                "email_verified": user.get("email_verified", False),
-                "created_at": user.get("created_at"),
-                "updated_at": user.get("updated_at")
+        # Return comprehensive user format with profile data
+        user_response = {
+            "id": str(user["_id"]),
+            "email": user["email"],
+            "name": user.get("name", ""),
+            "role": user.get("role", "job_seeker"),
+            "email_verified": user.get("email_verified", False),
+            "created_at": user.get("created_at"),
+            "updated_at": user.get("updated_at"),
+            "last_login": user.get("last_login"),
+            "is_active": user.get("is_active", True)
+        }
+        
+        # Add profile information if available
+        profile = user.get("profile", {})
+        if profile:
+            user_response["profile"] = {
+                "first_name": profile.get("first_name"),
+                "last_name": profile.get("last_name"),
+                "display_name": profile.get("display_name"),
+                "profile_picture": profile.get("profile_picture"),
+                "bio": profile.get("bio"),
+                "phone": profile.get("phone"),
+                "location": profile.get("location"),
+                "website": profile.get("website"),
+                "linkedin_profile": profile.get("linkedin_profile")
             }
-        }), 200
+        else:
+            user_response["profile"] = {}
+        
+        # Add OAuth account information (without sensitive data)
+        oauth_accounts = user.get("oauth_accounts", {})
+        user_response["oauth_accounts"] = {}
+        for provider, account_data in oauth_accounts.items():
+            if isinstance(account_data, dict):
+                user_response["oauth_accounts"][provider] = {
+                    "connected_at": account_data.get("connected_at"),
+                    "last_used": account_data.get("last_used"),
+                    "provider_id": account_data.get("provider_id")  # Safe to include
+                }
+        
+        return jsonify({"user": user_response}), 200
         
     except Exception as e:
         print(f"Error fetching current user: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 
-def find_or_create_oauth_user(email, name, provider, provider_id):
-    """Find existing user or create new OAuth user (handles missing email)"""
+def find_or_create_oauth_user(email, name, provider, provider_id, oauth_data=None):
+    """Find existing user or create new OAuth user with comprehensive profile data"""
     try:
         existing_user = None
+        
+        print(f"\n=== Finding or Creating OAuth User ===")
+        print(f"Provider: {provider}")
+        print(f"Provider ID: {provider_id}")
+        print(f"Email: {email}")
+        print(f"Name: {name}")
+        print(f"OAuth data keys: {list(oauth_data.keys()) if oauth_data else 'None'}")
         
         # First, try to find user by email if we have one
         if email:
@@ -273,75 +330,123 @@ def find_or_create_oauth_user(email, name, provider, provider_id):
             print(f"Looking for existing user by {provider} ID: {provider_id} - Found: {bool(existing_user)}")
         
         if existing_user:
-            # Update OAuth info if not already present
-            oauth_accounts = existing_user.get("oauth_accounts", {})
-            if provider not in oauth_accounts:
-                users_db.update_one(
-                    {"_id": existing_user["_id"]},
-                    {
-                        "$set": {
-                            f"oauth_accounts.{provider}": {
-                                "provider_id": provider_id,
-                                "connected_at": datetime.utcnow()
-                            },
-                            "updated_at": datetime.utcnow()
-                        }
-                    }
+            print(f"Found existing user with ID: {existing_user['_id']}")
+            
+            # Convert existing user document to User model for easier manipulation
+            try:
+                user_model = User.from_dict(existing_user)
+                print("Successfully converted existing user to Pydantic model")
+            except Exception as e:
+                print(f"Error converting existing user to model: {e}")
+                # Fall back to creating a new User model with existing data
+                user_model = User(
+                    email=existing_user.get("email", email or f"{provider}_{provider_id}@oauth.placeholder"),
+                    name=existing_user.get("name", name or "OAuth User"),
+                    role=existing_user.get("role", "job_seeker"),
+                    email_verified=existing_user.get("email_verified", True if email else False),
+                    email_placeholder=existing_user.get("email_placeholder", not bool(email)),
+                    created_at=existing_user.get("created_at", datetime.utcnow()),
+                    updated_at=datetime.utcnow()
                 )
-                print(f"Added {provider} OAuth info to existing user")
+            
+            # Update OAuth account info
+            provider_enum = OAuthProvider(provider)
+            user_model.add_oauth_account(provider_enum, provider_id, oauth_data)
+            
+            # Update profile data from OAuth if we have it
+            if oauth_data:
+                print("Updating profile from OAuth data...")
+                user_model.update_profile_from_oauth(provider_enum, oauth_data)
+                print(f"Updated profile - First name: {user_model.profile.first_name}, Last name: {user_model.profile.last_name}")
             
             # Update email if we have one and the user doesn't
             if email and not existing_user.get("email"):
-                users_db.update_one(
-                    {"_id": existing_user["_id"]},
-                    {
-                        "$set": {
-                            "email": email,
-                            "email_verified": True,
-                            "updated_at": datetime.utcnow()
-                        }
-                    }
-                )
+                user_model.email = email
+                user_model.email_verified = True
+                user_model.email_placeholder = False
                 print(f"Updated existing user with email: {email}")
-                existing_user["email"] = email
             
-            return existing_user
+            # Update last login timestamp
+            user_model.last_login = datetime.utcnow()
+            
+            # Save updated user back to database
+            user_dict = user_model.to_dict()
+            users_db.update_one(
+                {"_id": existing_user["_id"]},
+                {"$set": user_dict}
+            )
+            print(f"Updated existing user in database")
+            
+            # Add _id back to the dict for return
+            user_dict["_id"] = existing_user["_id"]
+            return user_dict
         
         # Create new user with OAuth
+        print("Creating new OAuth user...")
         now = datetime.utcnow()
-        new_user = {
-            "name": name,
-            "role": "job_seeker",  # Default role for OAuth users
-            "oauth_accounts": {
-                provider: {
-                    "provider_id": provider_id,
-                    "connected_at": now
-                }
-            },
-            "created_at": now,
-            "updated_at": now
-        }
         
-        # Add email fields only if we have an email
+        # Determine email and email settings
         if email:
-            new_user["email"] = email
-            new_user["email_verified"] = True  # OAuth providers verify emails
-            print(f"Creating new user with email: {email}")
+            user_email = email
+            email_verified = True  # OAuth providers verify emails
+            email_placeholder = False
+            print(f"Creating new user with verified email: {email}")
         else:
             # Create a placeholder email based on provider and ID for internal use
-            new_user["email"] = f"{provider}_{provider_id}@oauth.placeholder"
-            new_user["email_verified"] = False
-            new_user["email_placeholder"] = True  # Flag to indicate this is a placeholder
+            user_email = f"{provider}_{provider_id}@oauth.placeholder"
+            email_verified = False
+            email_placeholder = True
             print(f"Creating new user with placeholder email (no email permission from {provider})")
         
-        result = users_db.insert_one(new_user)
-        new_user["_id"] = result.inserted_id
+        # Create User model instance
+        new_user = User(
+            email=user_email,
+            name=name or "OAuth User",
+            role="job_seeker",  # Default role for OAuth users
+            email_verified=email_verified,
+            email_placeholder=email_placeholder,
+            created_at=now,
+            updated_at=now,
+            last_login=now
+        )
+        
+        # Add OAuth account
+        provider_enum = OAuthProvider(provider)
+        new_user.add_oauth_account(provider_enum, provider_id, oauth_data)
+        
+        # Update profile data from OAuth if we have it
+        if oauth_data:
+            print("Setting profile data from OAuth...")
+            new_user.update_profile_from_oauth(provider_enum, oauth_data)
+            print(f"Set profile - First name: {new_user.profile.first_name}, Last name: {new_user.profile.last_name}")
+            
+            # Log all the profile data we're storing
+            if new_user.profile.first_name:
+                print(f"Storing first_name: {new_user.profile.first_name}")
+            if new_user.profile.last_name:
+                print(f"Storing last_name: {new_user.profile.last_name}")
+            if new_user.profile.profile_picture:
+                print(f"Storing profile_picture: {new_user.profile.profile_picture}")
+            if new_user.profile.display_name:
+                print(f"Storing display_name: {new_user.profile.display_name}")
+        
+        # Convert to dict for MongoDB storage
+        user_dict = new_user.to_dict()
+        
+        # Insert into database
+        result = users_db.insert_one(user_dict)
+        user_dict["_id"] = result.inserted_id
+        
         print(f"Created new user with ID: {result.inserted_id}")
-        return new_user
+        print(f"User profile data stored: {user_dict.get('profile', {})}")
+        
+        return user_dict
         
     except Exception as e:
         print(f"Error in find_or_create_oauth_user: {e}")
         print(f"Parameters: email={email}, name={name}, provider={provider}, provider_id={provider_id}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return None
 
 
@@ -407,7 +512,7 @@ def google_callback():
         
         # Find or create user
         print("\nAttempting to find or create user...")
-        user = find_or_create_oauth_user(email, name, 'google', provider_id)
+        user = find_or_create_oauth_user(email, name, 'google', provider_id, user_info)
         
         if not user:
             print("Failed to find or create user!")
@@ -459,7 +564,7 @@ def google_verify_token():
             return standardize_error_response("Incomplete user information", 400)
         
         # Find or create user
-        user = find_or_create_oauth_user(email, name, 'google', provider_id)
+        user = find_or_create_oauth_user(email, name, 'google', provider_id, idinfo)
         
         if not user:
             return standardize_error_response("Failed to create user account", 500)
@@ -501,9 +606,12 @@ def linkedin_login():
             return standardize_error_response("OAuth not properly initialized", 500)
         
         print("Attempting to create authorization redirect...")
-        # Generate and store state parameter
-        state = os.urandom(16).hex()
+        # Generate and store state parameter for CSRF protection
+        import secrets
+        state = secrets.token_urlsafe(32)
         session['oauth_state'] = state
+        print(f"Generated state: {state}")
+        
         return oauth.linkedin.authorize_redirect(redirect_uri, state=state)
     except Exception as e:
         print(f"\nError initiating LinkedIn login:")
@@ -513,14 +621,61 @@ def linkedin_login():
         return standardize_error_response("OAuth initialization failed", 500)
 
 
+@auth_bp.route("/linkedin/test-userinfo", methods=["POST"])
+@validate_json_request
+def test_linkedin_userinfo():
+    """Debug endpoint to test LinkedIn userinfo API with a provided access token"""
+    try:
+        data = request.get_json()
+        access_token = data.get('access_token')
+        
+        if not access_token:
+            return standardize_error_response("Access token is required", 400)
+        
+        print(f"\n=== Testing LinkedIn UserInfo API ===")
+        print(f"Access token: {access_token[:20]}...")
+        
+        # Make request to LinkedIn's userinfo endpoint
+        userinfo_url = 'https://api.linkedin.com/v2/userinfo'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        print(f"Making request to: {userinfo_url}")
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+        print(f"Response status: {userinfo_response.status_code}")
+        print(f"Response headers: {dict(userinfo_response.headers)}")
+        
+        if userinfo_response.status_code == 200:
+            userinfo_data = userinfo_response.json()
+            print(f"Success! User data received")
+            
+            return standardize_success_response({
+                "status": "success",
+                "userinfo": userinfo_data,
+                "available_fields": list(userinfo_data.keys())
+            }, "UserInfo retrieved successfully", 200)
+            
+        else:
+            print(f"Error response: {userinfo_response.text}")
+            return standardize_error_response(
+                f"LinkedIn API error: {userinfo_response.status_code} - {userinfo_response.text}",
+                userinfo_response.status_code
+            )
+            
+    except Exception as e:
+        print(f"Error testing userinfo: {e}")
+        return standardize_error_response("Failed to test userinfo endpoint", 500)
+
+
 @auth_bp.route("/linkedin/callback", methods=["GET"])
 def linkedin_callback():
     """Handle LinkedIn OAuth callback"""
     try:
         print("\n=== LinkedIn OAuth Callback Started ===")
-        print("Attempting to get authorization token...")
         
-        # Verify state parameter
+        # Verify state parameter for CSRF protection
         state = request.args.get('state')
         stored_state = session.pop('oauth_state', None)
         
@@ -528,216 +683,143 @@ def linkedin_callback():
             print("State verification failed!")
             print(f"Received state: {state}")
             print(f"Stored state: {stored_state}")
-            return standardize_error_response("Invalid OAuth state", 400)
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=invalid_state")
         
-        # Get the authorization code from the request
+        # Check for error in callback
+        error = request.args.get('error')
+        if error:
+            print(f"OAuth error in callback: {error}")
+            error_description = request.args.get('error_description', '')
+            print(f"Error description: {error_description}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=oauth_denied")
+        
+        # Get the authorization code
         code = request.args.get('code')
         if not code:
             print("No authorization code received!")
-            return standardize_error_response("Authorization code missing", 400)
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=no_code")
             
-        # Exchange the authorization code for an access token
-        token = oauth.linkedin.authorize_access_token()
+        print(f"Authorization code received: {code[:10]}...")
         
-        if not token:
-            print("No token received from LinkedIn!")
-            return standardize_error_response("Authorization failed", 400)
+        # Manual token exchange to avoid JWT validation issues
+        print("Manually exchanging authorization code for access token...")
         
-        print("Token received successfully")
-        print(f"Token type: {type(token)}")
-        print(f"Token keys: {token.keys()}")
-        print(f"Token scope: {token.get('scope', 'No scope in token')}")
+        token_url = 'https://www.linkedin.com/oauth/v2/accessToken'
+        redirect_uri = url_for('auth_bp.linkedin_callback', _external=True)
         
-        # Get user info using LinkedIn's API endpoints with comprehensive fallback
-        print("\nFetching user profile using LinkedIn API...")
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': code,
+            'redirect_uri': redirect_uri,
+            'client_id': os.getenv('LINKEDIN_OAUTH_CLIENT_ID'),
+            'client_secret': os.getenv('LINKEDIN_OAUTH_CLIENT_SECRET')
+        }
         
-        try:
-            print("Attempting userinfo endpoint first...")
-            userinfo_resp = oauth.linkedin.get('https://api.linkedin.com/v2/userinfo')
-            print(f"Userinfo response status: {userinfo_resp.status_code}")
+        print(f"Making token request to: {token_url}")
+        print(f"Redirect URI: {redirect_uri}")
+        
+        token_response = requests.post(token_url, data=token_data)
+        print(f"Token response status: {token_response.status_code}")
+        
+        if token_response.status_code != 200:
+            print(f"Token exchange failed: {token_response.text}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=token_exchange_failed")
+        
+        token_json = token_response.json()
+        access_token = token_json.get('access_token')
+        
+        if not access_token:
+            print("No access token in response!")
+            print(f"Token response: {token_json}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=no_access_token")
+        
+        print("Token exchange successful!")
+        print(f"Access token: {access_token[:20]}...")
+        
+        # Get user information using the OpenID Connect userinfo endpoint
+        print("\nFetching user information from /v2/userinfo endpoint...")
+        
+        # Make request to LinkedIn's userinfo endpoint
+        userinfo_url = 'https://api.linkedin.com/v2/userinfo'
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        print(f"Making request to: {userinfo_url}")
+        print(f"Authorization header: Bearer {access_token[:20]}...")
+        
+        userinfo_response = requests.get(userinfo_url, headers=headers)
+        print(f"Userinfo response status: {userinfo_response.status_code}")
+        
+        if userinfo_response.status_code == 200:
+            userinfo_data = userinfo_response.json()
+            print(f"Userinfo data received successfully")
+            print(f"Available fields: {list(userinfo_data.keys())}")
             
-            if userinfo_resp.status_code == 200:
-                # Success with userinfo endpoint
-                userinfo_data = userinfo_resp.json()
-                print(f"Userinfo data received: {list(userinfo_data.keys())}")
-                
-                provider_id = userinfo_data.get('sub')
-                name = userinfo_data.get('name', '')
-                email = userinfo_data.get('email')
-                
-                # Fallback to individual name fields if full name not available
-                if not name:
-                    given_name = userinfo_data.get('given_name', '')
-                    family_name = userinfo_data.get('family_name', '')
-                    if given_name and family_name:
-                        name = f"{given_name} {family_name}"
-                    elif given_name:
-                        name = given_name
-                    elif family_name:
-                        name = family_name
-                
-                print(f"Extracted from userinfo - Email: {email}, Name: {name}, Provider ID: {provider_id}")
-                
-            elif userinfo_resp.status_code == 403:
-                print("Userinfo endpoint not accessible (403), trying traditional endpoints...")
-                
-                # Try traditional LinkedIn v2 API endpoints
-                print("Attempting profile from v2/me...")
-                profile_resp = oauth.linkedin.get('https://api.linkedin.com/v2/me')
-                print(f"Profile response status: {profile_resp.status_code}")
-                
-                if profile_resp.status_code == 200:
-                    profile_data = profile_resp.json()
-                    print(f"Profile data received: {list(profile_data.keys())}")
-                    
-                    # Extract profile information
-                    provider_id = profile_data.get('id')
-                    name = ''
-                    
-                    # Build name from LinkedIn profile (v2 API format)
-                    if 'firstName' in profile_data and 'localized' in profile_data['firstName']:
-                        localized_first = profile_data['firstName']['localized']
-                        first_name = next(iter(localized_first.values())) if localized_first else ''
-                    else:
-                        first_name = ''
-                    
-                    if 'lastName' in profile_data and 'localized' in profile_data['lastName']:
-                        localized_last = profile_data['lastName']['localized']
-                        last_name = next(iter(localized_last.values())) if localized_last else ''
-                    else:
-                        last_name = ''
-                    
-                    # Combine names
-                    if first_name and last_name:
-                        name = f"{first_name} {last_name}"
-                    elif first_name:
-                        name = first_name
-                    elif last_name:
-                        name = last_name
-                    
-                    # Get email from separate endpoint
-                    print("Attempting email from v2/emailAddress...")
-                    email_resp = oauth.linkedin.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))')
-                    print(f"Email response status: {email_resp.status_code}")
-                    
-                    if email_resp.status_code == 200:
-                        email_data = email_resp.json()
-                        print(f"Email data received: {list(email_data.keys())}")
-                        
-                        # Extract email from response
-                        email = None
-                        if 'elements' in email_data and email_data['elements']:
-                            email_element = email_data['elements'][0]
-                            if 'handle~' in email_element and 'emailAddress' in email_element['handle~']:
-                                email = email_element['handle~']['emailAddress']
-                    
-                    elif email_resp.status_code == 403:
-                        print("Email endpoint also giving 403 - LinkedIn app has very limited permissions")
-                        email = None  # Will handle this below
-                    else:
-                        print(f"Email endpoint unexpected status: {email_resp.status_code}")
-                        email = None
-                    
-                    print(f"Extracted from v2 APIs - Email: {email}, Name: {name}, Provider ID: {provider_id}")
-                    
-                elif profile_resp.status_code == 403:
-                    print("Traditional profile endpoint also giving 403!")
-                    print("This indicates LinkedIn app has very restricted permissions")
-                    print("Attempting to extract basic info from token or create minimal user...")
-                    
-                    # Last resort: try to extract info from token or create minimal user
-                    # LinkedIn still provides some basic info in certain contexts
-                    provider_id = None
-                    name = "LinkedIn User"  # Generic fallback
-                    email = None
-                    
-                    # Try to get any identifier from token
-                    if 'sub' in token:
-                        provider_id = token.get('sub')
-                        print(f"Found sub in token: {provider_id}")
-                    elif 'user_id' in token:
-                        provider_id = token.get('user_id')
-                        print(f"Found user_id in token: {provider_id}")
-                    else:
-                        # Generate a temporary ID based on client ID and timestamp
-                        import time
-                        provider_id = f"linkedin_user_{int(time.time())}"
-                        print(f"Generated temporary provider ID: {provider_id}")
-                    
-                    # Check if token contains any user info
-                    for key in ['name', 'email', 'given_name', 'family_name']:
-                        if key in token:
-                            if key == 'name':
-                                name = token[key]
-                            elif key == 'email':
-                                email = token[key]
-                            elif key in ['given_name', 'family_name'] and name == "LinkedIn User":
-                                if key == 'given_name':
-                                    name = token[key]
-                    
-                    print(f"Minimal user data - Email: {email}, Name: {name}, Provider ID: {provider_id}")
-                    
-                    if not provider_id:
-                        print("Cannot create user without any identifier!")
-                        return standardize_error_response(
-                            "LinkedIn authentication failed - insufficient permissions. "
-                            "Please contact support or try a different sign-in method.", 
-                            400
-                        )
-                
-                else:
-                    print(f"Profile endpoint unexpected status: {profile_resp.status_code}")
-                    print(f"Response: {profile_resp.text}")
-                    return standardize_error_response("Failed to get user profile", 400)
+            # Extract user information according to OpenID Connect standard
+            provider_id = userinfo_data.get('sub')  # LinkedIn's unique identifier
+            email = userinfo_data.get('email')
+            name = userinfo_data.get('name', '')
+            given_name = userinfo_data.get('given_name', '')
+            family_name = userinfo_data.get('family_name', '')
             
-            else:
-                print(f"Userinfo endpoint unexpected status: {userinfo_resp.status_code}")
-                print(f"Response: {userinfo_resp.text}")
-                return standardize_error_response("Failed to get user information", 400)
-            
-            # Validate we have minimum required information
-            if not provider_id:
-                print("Critical error: No provider ID obtained from any source!")
-                return standardize_error_response(
-                    "LinkedIn authentication failed - unable to identify user. "
-                    "Please contact support.", 
-                    400
-                )
-            
-            # Email is optional - some LinkedIn apps don't have email permission
-            if not email:
-                print("Warning: No email obtained - this may limit some features")
-                # You might want to generate a placeholder email or handle this case
-                # email = f"{provider_id}@linkedin.placeholder"
-            
-            # Name is optional but recommended
-            if not name:
+            # Construct full name if not provided directly
+            if not name and (given_name or family_name):
+                name = f"{given_name} {family_name}".strip()
+            elif not name:
                 name = "LinkedIn User"
-                print("Warning: No name obtained - using fallback")
             
-            print(f"Final user data - Email: {email}, Name: {name}, Provider ID: {provider_id}")
+            print(f"Extracted user data:")
+            print(f"  Provider ID: {provider_id}")
+            print(f"  Email: {email}")
+            print(f"  Name: {name}")
+            print(f"  Given name: {given_name}")
+            print(f"  Family name: {family_name}")
             
-        except Exception as e:
-            print(f"Exception during API request: {e}")
-            print(f"Exception type: {type(e)}")
-            return standardize_error_response(
-                "LinkedIn authentication failed due to API error. Please try again.", 
-                500
-            )
+            if not provider_id:
+                print("Error: No provider ID (sub) found in userinfo response")
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+                return redirect(f"{frontend_url}/oauth/callback?error=no_user_id")
+            
+        elif userinfo_response.status_code == 401:
+            print("Unauthorized - invalid or expired access token")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=unauthorized")
+            
+        elif userinfo_response.status_code == 403:
+            print("Forbidden - insufficient permissions")
+            print("This usually means your LinkedIn app doesn't have the required permissions.")
+            print("Make sure your LinkedIn app has 'Sign In with LinkedIn using OpenID Connect' product enabled.")
+            print(f"Response: {userinfo_response.text}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=insufficient_permissions")
+            
+        else:
+            print(f"Unexpected response status: {userinfo_response.status_code}")
+            print(f"Response body: {userinfo_response.text}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=api_error")
         
-        # Find or create user
+        # Find or create user in database
         print("\nAttempting to find or create user...")
-        user = find_or_create_oauth_user(email, name, 'linkedin', provider_id)
+        user = find_or_create_oauth_user(email, name, 'linkedin', provider_id, userinfo_data)
         
         if not user:
             print("Failed to find or create user!")
-            return standardize_error_response("Failed to create user account", 500)
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+            return redirect(f"{frontend_url}/oauth/callback?error=user_creation_failed")
         
         print(f"User processed successfully - ID: {user['_id']}")
         
         # Create session
         session["user_id"] = str(user["_id"])
-        print("Session created")
+        print("Session created successfully")
         
         # Redirect to frontend with success
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
@@ -745,12 +827,14 @@ def linkedin_callback():
         return redirect(f"{frontend_url}/oauth/callback?success=true")
         
     except Exception as e:
-        print("\nError in LinkedIn callback:")
+        print("\nUnexpected error in LinkedIn callback:")
         print(f"Error type: {type(e).__name__}")
         print(f"Error message: {str(e)}")
         print(f"Full error details: {repr(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-        return redirect(f"{frontend_url}/oauth/callback?error=oauth_failed")
+        return redirect(f"{frontend_url}/oauth/callback?error=unexpected_error")
 
 
 @auth_bp.route("/request-reset", methods=["POST"])

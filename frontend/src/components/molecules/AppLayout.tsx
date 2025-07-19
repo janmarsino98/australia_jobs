@@ -9,6 +9,7 @@ const AppLayout: React.FC = () => {
   // Transform user data to match NavbarProps user type
   const navbarUser = user ? {
     name: user.name || '',
+    profile: user.profile,
     profileImage: user.profileImage
   } : undefined;
 

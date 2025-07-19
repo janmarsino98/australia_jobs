@@ -6,92 +6,44 @@ import LocationDisplayer from "../components/molecules/LocationDisplayer";
 import MainFooter from "../components/molecules/MainFooter";
 import httpClient from "../httpClient";
 import { User, JobCard } from "../types";
+import useAuthStore from "../stores/useAuthStore";
 
 const Landing = (): JSX.Element => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isAuthenticated } = useAuthStore();
+  const [jobCards, setJobCards] = useState<JobCard[]>([]);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const resp = await httpClient.get<User>("http://localhost:5000/auth/@me");
-        setUser(resp.data);
-      } catch (e) {
-        console.log(e);
-      }
-    };
-
-    fetchUser();
+    // Fetch job cards or other data as needed
+    // User data is now managed by the auth store
   }, []);
 
-  const jobCards: JobCard[] = [
-    {
-      title: "cleaner",
-      imgSrc:
-        "https://images.pexels.com/photos/4239130/pexels-photo-4239130.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "waiter",
-      imgSrc:
-        "https://images.pexels.com/photos/4350219/pexels-photo-4350219.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      minSalary: 1500,
-      maxSalary: 2300,
-    },
-    {
-      title: "Babysitter",
-      imgSrc:
-        "https://images.pexels.com/photos/459976/pexels-photo-459976.jpeg?auto=compress&cs=tinysrgb&w=600",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "Receptionist",
-      imgSrc:
-        "https://images.pexels.com/photos/3771811/pexels-photo-3771811.jpeg?auto=compress&cs=tinysrgb&w=600",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "Construction",
-      imgSrc:
-        "https://images.pexels.com/photos/2219024/pexels-photo-2219024.jpeg?auto=compress&cs=tinysrgb&w=600",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "Gardener",
-      imgSrc:
-        "https://images.pexels.com/photos/5231143/pexels-photo-5231143.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "Packer",
-      imgSrc:
-        "https://images.pexels.com/photos/4246109/pexels-photo-4246109.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-    {
-      title: "Kitchen Assistant",
-      imgSrc:
-        "https://images.pexels.com/photos/66639/pexels-photo-66639.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
-      minSalary: 1000,
-      maxSalary: 2000,
-    },
-  ];
+  // Prepare user data for Navbar component
+  const navbarUser = user ? {
+    name: user.name,
+    profile: user.profile,
+    profileImage: user.profileImage
+  } : undefined;
+
+  const handleSearch = (searchTerm: string) => {
+    // Handle search functionality
+    console.log('Search term:', searchTerm);
+  };
 
   return (
     <div>
       <div className="font-sans flex flex-col items-center">
-        <Navbar user={user} />
+        <Navbar user={navbarUser} />
         <div className="flex flex-col max-w-[960px] my-[20px]">
           <h1 className="text-[32px] font-bold ml-[16px] mb-[16px]">
-            {`${user && user.name} Find Jobs Near You`}
+            {user && user.profile?.first_name 
+              ? `${user.profile.first_name}, Find Jobs Near You`
+              : user?.name 
+                ? `${user.name}, Find Jobs Near You`
+                : "Find Jobs Near You"
+            }
           </h1>
           <div className="pl-[16px]">
-            <SearchBox />
+            <SearchBox onSearch={handleSearch} />
             <LocationDisplayer />
             <JobRow jobCards={jobCards} />
             <MainFooter />

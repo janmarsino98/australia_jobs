@@ -8,6 +8,11 @@ import main_logo from "../../imgs/logo.svg";
 interface NavbarProps {
   user?: {
     name: string;
+    profile?: {
+      first_name?: string;
+      last_name?: string;
+      profile_picture?: string;
+    };
     profileImage?: string;
   };
 }
@@ -82,12 +87,12 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-sm font-medium text-main-text hidden lg:inline">
-                    Welcome, {user.name}
+                    Welcome, {user.profile?.first_name}
                   </span>
                   <div className="h-8 w-px bg-navbar-border hidden lg:block" />
                   <NavProfileIcon
-                    profImg={user.profileImage || "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
-                    alt={`${user.name} profile picture`}
+                    profImg={user.profileImage || user.profile?.profile_picture || "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"}
+                    alt={`${user.profile?.first_name || user.name} profile picture`}
                   />
                 </div>
               ) : (
@@ -101,7 +106,8 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                     isPrimary
                   />
                 </div>
-              )}
+              )
+              }
             </div>
           </div>
         </div>
