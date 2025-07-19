@@ -16,35 +16,33 @@ const NavTextOption = ({
 }: NavTextOptionProps): JSX.Element => {
   if (!path) {
     return (
-      <span className="text-sm font-medium text-main-text p-2">
+      <span className="text-sm font-medium text-main-text px-4 py-2">
         {text}
       </span>
     );
   }
 
-  const baseClasses = "text-sm font-medium transition-all duration-200 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pill-text focus:ring-offset-2";
+  const baseClasses = "relative text-sm font-medium transition-colors duration-200 px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
   
   const styleClasses = isPrimary
-    ? "bg-pill-text text-white hover:bg-pill-text/90 shadow-sm"
-    : `${isActive ? "text-pill-text" : "text-main-text"} hover:text-pill-text hover:bg-pill-bg/50`;
+    ? "bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
+    : `${isActive ? "text-pill-text" : "text-main-text"} hover:text-pill-text`;
 
   return (
-    <div className="flex relative">
-      <Link 
-        to={path}
-        className={`${baseClasses} ${styleClasses}`}
-        role="menuitem"
-        aria-current={isActive ? "page" : undefined}
-      >
-        {text}
-      </Link>
+    <Link 
+      to={path}
+      className={`${baseClasses} ${styleClasses}`}
+      role="menuitem"
+      aria-current={isActive ? "page" : undefined}
+    >
+      {text}
       {isActive && !isPrimary && (
         <div 
-          className="w-full border border-pill-text absolute -bottom-1 right-1/2 left-1/2 transform -translate-x-1/2 rounded-full" 
+          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-pill-text rounded-full" 
           aria-hidden="true" 
         />
       )}
-    </div>
+    </Link>
   );
 };
 
