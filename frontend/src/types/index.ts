@@ -53,4 +53,52 @@ export interface State {
 
 export interface JobType {
     jobtype: string;
+}
+
+// Resume-related types
+export interface ResumeMetadata {
+    id: string;
+    filename: string;
+    custom_name?: string;
+    length: number;
+    upload_date: string | null;
+    content_type: string;
+}
+
+export interface ResumeData {
+    personalInfo?: {
+        name?: string;
+        email?: string;
+        phone?: string;
+        location?: string;
+    };
+    summary?: string;
+    experience?: Array<{
+        title: string;
+        company: string;
+        duration: string;
+        description: string;
+    }>;
+    education?: Array<{
+        degree: string;
+        institution: string;
+        year: string;
+    }>;
+    skills?: string[];
+    certifications?: string[];
+}
+
+export interface ResumeAnalysis {
+    score: number;
+    strengths: string[];
+    improvements: string[];
+    keywords: string[];
+    atsScore: number;
+    sections: {
+        [key: string]: {
+            present: boolean;
+            quality: 'good' | 'fair' | 'needs_improvement';
+            suggestions?: string[];
+        };
+    };
 } 

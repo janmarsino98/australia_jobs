@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 interface NavProfileIconProps {
   profImg: string;
   alt: string;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  'aria-expanded'?: boolean;
+  'aria-haspopup'?: boolean;
 }
 
-const NavProfileIcon = ({ profImg, alt }: NavProfileIconProps): JSX.Element => {
+const NavProfileIcon = ({ profImg, alt, onClick, ...buttonProps }: NavProfileIconProps): JSX.Element => {
   const [imageSrc, setImageSrc] = useState(profImg);
   const [hasError, setHasError] = useState(false);
 
@@ -37,6 +40,8 @@ const NavProfileIcon = ({ profImg, alt }: NavProfileIconProps): JSX.Element => {
     <button 
       className="flex items-center space-x-2 rounded-full transition-all duration-200 hover:bg-pill-bg/50 p-1 focus:outline-none focus:ring-2 focus:ring-pill-text focus:ring-offset-2 group"
       aria-label="Open user menu"
+      onClick={onClick}
+      {...buttonProps}
     >
       <div className="relative w-8 h-8">
         <img 

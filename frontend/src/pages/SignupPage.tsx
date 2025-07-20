@@ -34,6 +34,7 @@ const SignupPage = () => {
     },
   });
 
+
   const onSubmit = async (data: any) => {
     try {
       await registerUser(data.name, data.email, data.password, data.role);

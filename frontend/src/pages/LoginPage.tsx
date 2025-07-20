@@ -10,7 +10,7 @@ import { Card, CardHeader, CardContent, CardFooter } from "../components/ui/card
 import { LoadingSpinner } from "../components/molecules/LoadingSpinner";
 import SocialLoginButtons from "../components/molecules/SocialLoginButtons";
 import { motion } from "framer-motion";
-import main_logo from "../imgs/logo.png";
+import main_logo from "../imgs/logo.svg";
 import useAuthStore from "../stores/useAuthStore";
 
 const LoginPage = () => {
@@ -31,6 +31,7 @@ const LoginPage = () => {
       rememberMe: false,
     },
   });
+
 
   const onSubmit = async (data: any) => {
     try {

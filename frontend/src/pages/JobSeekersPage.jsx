@@ -2,13 +2,11 @@ import { FileText, BookOpen, BriefcaseBusiness } from "lucide-react";
 import LandingCard from "../components/molecules/LandingCard";
 import ana from "../imgs/anna.jpg";
 import jhon from "../imgs/jhon.jpg";
-import MainHeader from "../components/molecules/MainHeader";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
 
 export default function JobSeekersPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainHeader />
 
       <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
         <div className="max-w-6xl mx-auto space-y-12">

@@ -4,7 +4,6 @@ import LocationDisplayer from "../components/molecules/LocationDisplayer";
 import MiniJobCard from "../components/molecules/MiniJobCard";
 import CategoryChooser from "../components/molecules/CategoryChooser";
 import httpClient from "../httpClient";
-import MainHeader from "../components/molecules/MainHeader";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
 import { Job } from "../types";
 
@@ -36,12 +35,11 @@ const JobPage = (): JSX.Element => {
   }, []);
 
   return (
-    <div>
+    <div> 
       <div className="flex flex-col min-h-screen bg-white">
-        <MainHeader />
         <div className="flex flex-col w-full">
           <div className="mx-20 mt-[15px]">
-            <SearchBox />
+            <SearchBox onSearch={() => {}} showAdvancedSearch={false} defaultValue={""} />
             <div className="flex felx-row gap-4 items-center justify-between">
               <LocationDisplayer />
               <CategoryChooser onCategoryChange={handleCategoryChange} />
@@ -54,7 +52,9 @@ const JobPage = (): JSX.Element => {
                   jobTitle={job.jobtype}
                   jobImg={job.avatar}
                   jobSchedule={job.remuneration_period}
-                />
+                  jobType={job.jobtype}
+                  jobShedule={job.remuneration_period}
+                  />
               ))}
             </div>
           </div>

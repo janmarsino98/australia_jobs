@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import MainHeader from "../components/molecules/MainHeader";
 import httpClient from "../httpClient";
 import NoResumeAlert from "../components/molecules/NoResumeAlert";
 import JobApplicationModal from "../components/molecules/JobApplicationModal";
@@ -61,7 +60,6 @@ const JobDetailsPage: React.FC = () => {
   if (!job) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
-        <MainHeader />
         <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
           <div className="max-w-4xl mx-auto">
             Loading...
@@ -73,7 +71,6 @@ const JobDetailsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <MainHeader />
 
       <main className="flex-1 p-6 bg-gradient-to-b from-white to-gray-100">
         <div className="max-w-4xl mx-auto space-y-8">

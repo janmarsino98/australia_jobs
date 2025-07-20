@@ -20,6 +20,11 @@ httpClient.interceptors.request.use(
         config.headers['X-Frame-Options'] = 'DENY';
         config.headers['X-XSS-Protection'] = '1; mode=block';
 
+        // Don't modify Content-Type for FormData
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+
         // Sanitize URLs
         if (config.url) {
             try {
@@ -31,8 +36,8 @@ httpClient.interceptors.request.use(
             }
         }
 
-        // Sanitize request data
-        if (config.data && typeof config.data === 'object') {
+        // Sanitize request data (skip for FormData)
+        if (config.data && typeof config.data === 'object' && !(config.data instanceof FormData)) {
             config.data = JSON.parse(JSON.stringify(config.data));
         }
 

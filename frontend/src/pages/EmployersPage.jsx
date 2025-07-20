@@ -1,5 +1,4 @@
 import React from 'react';
-import MainHeader from '../components/molecules/MainHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -53,7 +52,6 @@ const EmployersPage = () => {
 
   return (
     <div className="min-h-screen bg-main-white-bg">
-      <MainHeader />
       
       {/* Hero Section */}
       <section className="px-6 py-4 bg-gradient-to-r from-main-text to-searchbar-text text-white">

@@ -8,6 +8,9 @@ import json
 # Add backend directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Import create_app from server
+from server import create_app
+
 # Mock extensions before importing auth modules
 with patch('extensions.mongo') as mock_mongo:
     mock_mongo.db.users = MagicMock()

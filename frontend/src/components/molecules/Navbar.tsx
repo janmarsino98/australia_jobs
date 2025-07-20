@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import NavIconImg from "../atoms/NavIconImg";
 import NavTextOption from "../atoms/NavTextOption";
 import NavProfileIcon from "../atoms/NavProfileIcon";
 import main_logo from "../../imgs/logo.svg";
 import config from "../../config";
+import useAuthStore from "../../stores/useAuthStore";
 
 interface NavbarProps {
   user?: {
@@ -21,6 +22,8 @@ interface NavbarProps {
 const Navbar = ({ user }: NavbarProps): JSX.Element => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const logout = useAuthStore(state => state.logout);
 
   const handleLogoClick = () => {
     navigate("/");
@@ -29,6 +32,16 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       handleLogoClick();
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+      setShowDropdown(false);
+    } catch (error) {
+      console.error('Error during logout:', error);
     }
   };
 
@@ -49,6 +62,21 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
     
     return imageUrl;
   };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showDropdown && !target.closest('.profile-dropdown')) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   return (
     <>
@@ -102,7 +130,7 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
 
             {/* Profile Section */}
             <div 
-              className="flex items-center"
+              className="flex items-center relative"
               role="region"
               aria-label="User profile"
             >
@@ -112,10 +140,54 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                     Welcome, {user.profile?.first_name || user.name}
                   </span>
                   <div className="h-6 w-px bg-navbar-border hidden lg:block" />
-                  <NavProfileIcon
-                    profImg={getProfileImageUrl(user.profileImage, user.profile?.profile_picture)}
-                    alt={`${user.profile?.first_name || user.name} profile picture`}
-                  />
+                  <div className="relative profile-dropdown">
+                    <NavProfileIcon
+                      profImg={getProfileImageUrl(user.profileImage, user.profile?.profile_picture)}
+                      alt={`${user.profile?.first_name || user.name} profile picture`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDropdown(!showDropdown);
+                      }}
+                      aria-expanded={showDropdown}
+                      aria-haspopup={true}
+                    />
+                    
+                    {/* Dropdown Menu */}
+                    {showDropdown && (
+                      <div 
+                        className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50"
+                        role="menu"
+                        aria-orientation="vertical"
+                        aria-labelledby="user-menu"
+                      >
+                        <div className="py-1" role="none">
+                          <a
+                            href="/profile"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            role="menuitem"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Your Profile
+                          </a>
+                          <a
+                            href="/settings"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            role="menuitem"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Settings
+                          </a>
+                          <button
+                            onClick={handleLogout}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            role="menuitem"
+                          >
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">

@@ -22,6 +22,7 @@ import Landing from "./pages/Landing";
 import Job from "./pages/Job";
 import { Outlet } from "react-router-dom";
 
+
 const routes = createBrowserRouter([
   {
     element: <AppLayout />,
@@ -29,6 +30,10 @@ const routes = createBrowserRouter([
       {
         path: "/",
         element: <MainLanding />,
+      },
+      {
+        path: "/resume",
+        element: <ResumeUpload />,
       },
       {
         path: "/login",

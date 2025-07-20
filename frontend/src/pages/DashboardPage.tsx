@@ -25,7 +25,6 @@ import {
   Target,
   Sparkles
 } from "lucide-react";
-import MainHeader from "../components/molecules/MainHeader";
 import ProfileCompleteness from "../components/molecules/ProfileCompleteness";
 import JobApplicationTracker from "../components/molecules/JobApplicationTracker";
 import JobApplicationKanban from "../components/molecules/JobApplicationKanban";
@@ -128,10 +127,8 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainHeader />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}! 👋</h1>

@@ -18,11 +18,27 @@ def generate_secure_token(length=32):
 def send_email(to, subject, html_body, text_body=None):
     """Send an email"""
     try:
+        # Get default sender from app config or environment
+        default_sender = current_app.config.get('MAIL_DEFAULT_SENDER') or os.getenv('MAIL_DEFAULT_SENDER')
+        if not default_sender:
+            # Fallback to MAIL_USERNAME if no default sender is set
+            default_sender = current_app.config.get('MAIL_USERNAME') or os.getenv('MAIL_USERNAME')
+        
+        if not default_sender:
+            return False, "No sender email configured. Please set MAIL_DEFAULT_SENDER or MAIL_USERNAME"
+        
+        # For Gmail, format sender with custom display name
+        if 'gmail.com' in (current_app.config.get('MAIL_SERVER', '') or ''):
+            formatted_sender = "Australia Jobs <{}>".format(default_sender)
+        else:
+            formatted_sender = default_sender
+            
         msg = Message(
             subject=subject,
             recipients=[to] if isinstance(to, str) else to,
             html=html_body,
-            body=text_body or html_body
+            body=text_body or html_body,
+            sender=formatted_sender
         )
         mail.send(msg)
         return True, "Email sent successfully"
@@ -155,8 +171,8 @@ def get_password_reset_email_template():
 def send_password_reset_email(email, name, token):
     """Send password reset email"""
     try:
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        reset_url = f"{frontend_url}/auth/reset-password?token={token}"
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        reset_url = f"{frontend_url}/reset-password?token={token}"
         
         template = get_password_reset_email_template()
         html_body = render_template_string(template, 
@@ -382,8 +398,8 @@ def get_email_verification_template():
 def send_email_verification(email, name, token):
     """Send email verification email"""
     try:
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-        verification_url = f"{frontend_url}/auth/verify-email?token={token}"
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        verification_url = f"{frontend_url}/verify-email?token={token}"
         
         template = get_email_verification_template()
         html_body = render_template_string(template, 

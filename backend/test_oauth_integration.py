@@ -29,10 +29,10 @@ def test_linkedin_oauth_integration():
             # Test that the environment variables are loaded
             assert os.getenv('LINKEDIN_OAUTH_CLIENT_ID') == 'test_client_id'
             assert os.getenv('LINKEDIN_OAUTH_CLIENT_SECRET') == 'test_client_secret'
-            print("✅ Environment variables loaded correctly")
+            print("✓ Environment variables loaded correctly")
             
     except Exception as e:
-        print(f"❌ Environment setup failed: {e}")
+        print(f"✗ Environment setup failed: {e}")
         return False
     
     # Test scope configuration
@@ -43,9 +43,9 @@ def test_linkedin_oauth_integration():
         auth_content = f.read()
     
     if 'scope\': \'profile email\'' in auth_content:
-        print("✅ LinkedIn scope correctly set to 'profile email'")
+        print("✓ LinkedIn scope correctly set to 'profile email'")
     else:
-        print("❌ LinkedIn scope not properly configured")
+        print("✗ LinkedIn scope not properly configured")
         return False
     
     # Test API endpoints
@@ -58,9 +58,9 @@ def test_linkedin_oauth_integration():
     
     for endpoint in expected_endpoints:
         if endpoint in auth_content:
-            print(f"✅ Found endpoint: {endpoint}")
+            print(f"✓ Found endpoint: {endpoint}")
         else:
-            print(f"❌ Missing endpoint: {endpoint}")
+            print(f"✗ Missing endpoint: {endpoint}")
             return False
     
     # Test OAuth URLs
@@ -73,12 +73,12 @@ def test_linkedin_oauth_integration():
     
     for url in expected_oauth_urls:
         if url in auth_content:
-            print(f"✅ Found OAuth URL: {url}")
+            print(f"✓ Found OAuth URL: {url}")
         else:
-            print(f"❌ Missing OAuth URL: {url}")
+            print(f"✗ Missing OAuth URL: {url}")
             return False
     
-    print("\n✅ All integration tests passed!")
+    print("\n✓ All integration tests passed!")
     return True
 
 
@@ -101,28 +101,28 @@ def test_error_handling():
         auth_content = f.read()
     
     if 'r_emailaddress' not in auth_content and 'r_liteprofile' not in auth_content:
-        print("✅ Deprecated scopes removed from configuration")
-        print("✅ Error 'unauthorized_scope_error' should no longer occur")
+        print("✓ Deprecated scopes removed from configuration")
+        print("✓ Error 'unauthorized_scope_error' should no longer occur")
     else:
-        print("❌ Deprecated scopes still present in configuration")
+        print("✗ Deprecated scopes still present in configuration")
         return False
     
     print("\n2. Testing proper error handling structure...")
     
     # Check that error handling exists in the callback
     if 'standardize_error_response' in auth_content:
-        print("✅ Standardized error handling found")
+        print("✓ Standardized error handling found")
     else:
-        print("❌ Missing standardized error handling")
+        print("✗ Missing standardized error handling")
         return False
     
     if 'oauth/callback?error=oauth_failed' in auth_content:
-        print("✅ OAuth error redirect handling found")
+        print("✓ OAuth error redirect handling found")
     else:
-        print("❌ Missing OAuth error redirect handling")
+        print("✗ Missing OAuth error redirect handling")
         return False
     
-    print("\n✅ All error handling tests passed!")
+    print("\n✓ All error handling tests passed!")
     return True
 
 
@@ -144,7 +144,7 @@ def test_linkedin_application_requirements():
     print("   • Check that redirect URI 'http://localhost:5000/auth/linkedin/callback' is authorized")
     print("   • Ensure scopes 'profile' and 'email' are granted")
     
-    print("\n✅ Requirements checklist completed!")
+    print("\n✓ Requirements checklist completed!")
     return True
 
 
@@ -183,10 +183,10 @@ def test_oauth_flow_simulation():
             missing_requirements.append(requirement)
     
     if missing_requirements:
-        print(f"❌ Missing OAuth flow requirements: {missing_requirements}")
+        print(f"✗ Missing OAuth flow requirements: {missing_requirements}")
         return False
     else:
-        print("✅ All OAuth flow steps are implemented!")
+        print("✓ All OAuth flow steps are implemented!")
     
     return True
 
@@ -214,17 +214,17 @@ if __name__ == '__main__':
     if all_tests_passed:
         print("\n🎉 All integration tests passed!")
         print("\n📝 SUMMARY OF FIXES APPLIED:")
-        print("   ✅ Fixed LinkedIn OAuth scope from 'r_liteprofile r_emailaddress' to 'profile email'")
-        print("   ✅ Updated API endpoints to use LinkedIn API v2")
-        print("   ✅ Maintained proper error handling")
-        print("   ✅ Verified OAuth flow implementation")
+        print("   ✓ Fixed LinkedIn OAuth scope from 'r_liteprofile r_emailaddress' to 'profile email'")
+        print("   ✓ Updated API endpoints to use LinkedIn API v2")
+        print("   ✓ Maintained proper error handling")
+        print("   ✓ Verified OAuth flow implementation")
         print("\n🔧 MANUAL STEPS REQUIRED:")
         print("   1. Verify LinkedIn Developer Application settings")
         print("   2. Ensure 'Sign In with LinkedIn' product is enabled")
         print("   3. Check redirect URI authorization")
         print("   4. Test the OAuth flow with a real LinkedIn account")
     else:
-        print("\n❌ Some integration tests failed!")
+        print("\n✗ Some integration tests failed!")
         print("   Please review the test output above for specific issues.")
     
     print("=" * 60) 

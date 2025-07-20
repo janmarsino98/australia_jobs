@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import MainHeader from "@/components/molecules/MainHeader";
 import { useNavigate } from "react-router-dom";
 
 const packages = [
@@ -69,7 +68,6 @@ const PricingInformationPage = () => {
 
   return (
     <div className="min-h-screen bg-main-white-bg">
-      <MainHeader />
       
       {/* Hero Section */}
       <section className="px-6 py-4 bg-gradient-to-r from-main-text to-searchbar-text text-white">

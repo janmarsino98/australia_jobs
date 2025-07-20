@@ -8,18 +8,39 @@ import {
   AlertCircle,
   FileText,
   Trash2,
+  Edit3,
 } from "lucide-react";
 import httpClient from "@/httpClient";
-import MainHeader from "../components/molecules/MainHeader";
 import ResumePreview from "../components/molecules/ResumePreview";
+import { ResumeRenameModal } from "../components/molecules/ResumeRenameModal";
+import useResumeStore from "@/stores/useResumeStore";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function CVAnalysisPage() {
   const [analysisState, setAnalysisState] = useState("idle");
   const [progress, setProgress] = useState(0);
-  const [resumeUploaded, setResumeUploaded] = useState(false);
-  const [resumeName, setResumeName] = useState("");
   const [user, setUser] = useState(null);
   const [uploadedFile, setUploadedFile] = useState(null);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+
+  // Resume store
+  const {
+    currentResume,
+    isUploading,
+    uploadProgress,
+    uploadError,
+    uploadResume,
+    deleteResume,
+    updateResumeName,
+    fetchCurrentResume,
+    clearUploadState,
+  } = useResumeStore();
+
+  const { toast } = useToast();
+
+  // Check if resume is uploaded (from store or local state)
+  const resumeUploaded = Boolean(currentResume || uploadedFile);
+  const resumeName = currentResume?.custom_name || currentResume?.filename || "Uploaded Resume";
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -34,24 +55,13 @@ export default function CVAnalysisPage() {
     };
 
     fetchUser();
-  }, []);
+    fetchCurrentResume(); // Fetch current resume on component mount
+  }, [fetchCurrentResume]);
 
-  const fetchCurrentUserResume = async () => {
-    try {
-      const response = await httpClient.get(
-        "http://127.0.0.1:5000/resume/current",
-        {
-          withCredentials: true,
-        }
-      );
-      if (response.data && response.data.filename) {
-        setResumeUploaded(true);
-        setResumeName(response.data.filename);
-      }
-    } catch (error) {
-      console.error("Error trying to fetch current user resume.", error);
-    }
-  };
+  // Clear upload error when component unmounts
+  useEffect(() => {
+    return () => clearUploadState();
+  }, [clearUploadState]);
 
   const startAnalysis = () => {
     setAnalysisState("analyzing");
@@ -70,50 +80,103 @@ export default function CVAnalysisPage() {
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
-    if (file) {
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
 
-        // Upload the file using POST request
-        await httpClient.post("http://127.0.0.1:5000/resume/upload", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          withCredentials: true,
-        });
+    console.log("File selected:", {
+      name: file.name,
+      type: file.type,
+      size: file.size
+    });
 
-        setResumeUploaded(true);
-        setResumeName(file.name);
-        setUploadedFile(file);
-      } catch (error) {
-        console.error("Error uploading the file:", error);
-      }
+    // Validate file type
+    const allowedTypes = ['application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Starting file upload...");
+      const resumeData = await uploadResume(file);
+      console.log("Upload successful:", resumeData);
+      
+      setUploadedFile(file);
+      setAnalysisState("idle");
+      
+      toast({
+        title: "Upload successful",
+        description: "Your resume has been uploaded successfully.",
+      });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload resume. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDeleteResume = async () => {
     try {
-      await httpClient.delete("http://127.0.0.1:5000/resume/current", {
-        withCredentials: true,
-      });
-      setResumeUploaded(false);
-      setResumeName("");
+      await deleteResume();
       setUploadedFile(null);
       setAnalysisState("idle");
+      
+      toast({
+        title: "Resume deleted",
+        description: "Your resume has been removed successfully.",
+      });
     } catch (error) {
-      console.error("Error deleting resume:", error);
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameResume = async (newName) => {
+    try {
+      await updateResumeName(newName);
+      toast({
+        title: "Resume renamed",
+        description: `Resume renamed to "${newName}" successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Rename failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error; // Re-throw so modal can handle it
     }
   };
 
   const handleAnalysisComplete = (analysis) => {
     console.log("Analysis completed:", analysis);
-    // You can save the analysis results or update user profile here
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MainHeader />
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
@@ -135,10 +198,11 @@ export default function CVAnalysisPage() {
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
                       <input
                         type="file"
-                        accept=".pdf,.doc,.docx"
+                        accept=".pdf"
                         onChange={handleFileUpload}
                         className="hidden"
                         id="resume-upload"
+                        disabled={isUploading}
                       />
                       <label
                         htmlFor="resume-upload"
@@ -146,9 +210,11 @@ export default function CVAnalysisPage() {
                       >
                         <Upload className="w-12 h-12 text-gray-400" />
                         <div>
-                          <p className="text-lg font-medium">Drop your resume here</p>
+                          <p className="text-lg font-medium">
+                            {isUploading ? "Uploading..." : "Drop your resume here"}
+                          </p>
                           <p className="text-sm text-gray-500">
-                            or click to browse (PDF, DOC, DOCX)
+                            or click to browse (PDF files only - max 10MB)
                           </p>
                         </div>
                       </label>
@@ -160,7 +226,17 @@ export default function CVAnalysisPage() {
                           <CheckCircle className="w-5 h-5 text-green-500" />
                           <div>
                             <p className="font-medium">Resume uploaded successfully</p>
-                            <p className="text-sm text-gray-600">{resumeName}</p>
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm text-gray-600">{resumeName}</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIsRenameModalOpen(true)}
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                         <Button
@@ -182,6 +258,25 @@ export default function CVAnalysisPage() {
                           Start Analysis
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Upload Progress */}
+                  {isUploading && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Upload Progress</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <Progress value={uploadProgress} className="h-2" />
+                    </div>
+                  )}
+
+                  {/* Upload Error */}
+                  {uploadError && (
+                    <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                      <p className="text-sm text-red-600">{uploadError}</p>
                     </div>
                   )}
                 </CardContent>
@@ -243,6 +338,7 @@ export default function CVAnalysisPage() {
             {/* Preview Section */}
             <div>
               <ResumePreview
+                resumeId={currentResume?.id}
                 resumeFile={uploadedFile}
                 onAnalysisComplete={handleAnalysisComplete}
                 className="w-full"
@@ -251,6 +347,14 @@ export default function CVAnalysisPage() {
           </div>
         </div>
       </main>
+
+      {/* Rename Modal */}
+      <ResumeRenameModal
+        isOpen={isRenameModalOpen}
+        currentName={resumeName}
+        onClose={() => setIsRenameModalOpen(false)}
+        onSave={handleRenameResume}
+      />
     </div>
   );
 }

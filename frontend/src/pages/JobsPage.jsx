@@ -553,8 +553,11 @@ export default function JobsPage() {
 
                 <div className="flex space-x-2 pt-4">
                   <Button
+                  
                     type="button"
+                    
                     variant="outline"
+                    
                     onClick={() => {
                       setValue("salary", { min: undefined, max: undefined });
                       setValue("jobType", "all");

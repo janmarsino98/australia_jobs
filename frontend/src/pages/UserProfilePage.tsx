@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
 import { LoadingSpinner } from "../components/molecules/LoadingSpinner";
 import FormInput from "../components/molecules/FormInput";
-import MainHeader from "../components/molecules/MainHeader";
 import { useZodForm } from "../hooks/useZodForm";
 import { useToast } from "../components/ui/use-toast";
 import useAuthStore from "../stores/useAuthStore";
@@ -386,7 +385,6 @@ const UserProfilePage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-main-white-bg">
-        <MainHeader />
         <div className="flex items-center justify-center h-96">
           <LoadingSpinner className="h-8 w-8" />
         </div>
@@ -396,7 +394,6 @@ const UserProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-main-white-bg">
-      <MainHeader />
       
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Profile Header */}
