@@ -73,8 +73,6 @@ const useResumeStore = create<ResumeState>()((set, get) => ({
             const formData = new FormData();
             formData.append("file", file);
 
-            console.log('Uploading file:', file.name, file.type, file.size);
-
             const response = await httpClient.post(`${config.apiBaseUrl}/resume/upload`, formData, {
                 withCredentials: true,
                 headers: {

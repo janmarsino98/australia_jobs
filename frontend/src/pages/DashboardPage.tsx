@@ -297,12 +297,10 @@ const DashboardPage: React.FC = () => {
   ];
 
   const handleUserAction = (userId: string, action: string) => {
-    console.log(`Admin action: ${action} for user ${userId}`);
     // In real app, this would make API call
   };
 
   const handleJobAction = (jobId: string, action: string) => {
-    console.log(`Admin action: ${action} for job ${jobId}`);
     // In real app, this would make API call
   };
 

@@ -42,8 +42,6 @@ const CategoryChooser = ({ onCategoryChange }: CategoryChooserProps): JSX.Elemen
 
     // Notify parent component
     onCategoryChange(updatedCategories);
-
-    console.log("Selected categories: ", updatedCategories);
   };
 
   return (

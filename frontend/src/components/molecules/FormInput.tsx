@@ -32,7 +32,6 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
       if (inputRef.current && !inputRef.current.contains(e.target)) {
         if (isFocused) {
           setIsFocused(false);
-          console.log(`🌍 FormInput "${label}" BLURRED via document click`);
         }
       }
     };
@@ -46,16 +45,6 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
     const newHasContent = e.target.value.length > 0;
     setHasContent(newHasContent);
     
-    // DEBUG: Log all state changes
-    console.log(`🔥 FormInput "${label}" onChange:`, {
-      fieldValue: e.target.value,
-      hasContent: newHasContent,
-      error: error,
-      isFocused: isFocused,
-      isInvalid: newHasContent && !!error,
-      timestamp: new Date().toISOString()
-    });
-    
     if (onChange) onChange(e);
   };
   
@@ -63,21 +52,6 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
   const isInvalid = hasContent && !!error;
   const isValid = false; // Never show green since we can't reliably detect valid content
   
-  // DEBUG: Log render state
-  console.log(`🎨 FormInput "${label}" render:`, {
-    hasContent,
-    error,
-    isFocused,
-    isInvalid,
-    isValid,
-    value,
-    finalClassName: (() => {
-      if (isInvalid) return 'claude-invalid !border-red-300 !bg-red-50/50';
-      if (isValid) return 'claude-valid !border-green-300 !bg-green-50/50';
-      if (isFocused) return 'claude-focused !border-blue-400 !bg-blue-50/50 shadow-md shadow-blue-100/50';
-      return 'claude-default !border-gray-200 !bg-white/70 hover:!border-gray-300 hover:!bg-white/90';
-    })()
-  });
 
   const handlePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -85,14 +59,12 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
 
   const handleFocus = () => {
     setIsFocused(true);
-    console.log(`👀 FormInput "${label}" FOCUSED`);
   };
 
   const handleBlur = (e) => {
     // Use setTimeout to ensure blur fires after any click events
     setTimeout(() => {
       setIsFocused(false);
-      console.log(`😴 FormInput "${label}" BLURRED`);
     }, 0);
   };
 
@@ -103,11 +75,6 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
       {label && (
         <label htmlFor={inputId} className="text-sm font-medium text-gray-700 ml-1">
           {label}
-          {/* DEBUG: Visual state indicator */}
-          <span className="ml-2 text-xs font-mono bg-black text-white px-1 rounded">
-            {isInvalid ? '🔴INVALID' : isFocused ? '🔵FOCUSED' : '⚫DEFAULT'} 
-            {hasContent ? ' HAS_CONTENT' : ' EMPTY'}
-          </span>
         </label>
       )}
       <div 
@@ -207,10 +174,6 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
           <CgSpinner className="animate-spin text-blue-500 text-xl relative z-10" aria-hidden="true" />
         )}
         
-        {/* DEBUG: Super obvious visual state indicator */}
-        <div className="absolute top-0 right-0 -mt-2 -mr-2 w-4 h-4 rounded-full text-white text-xs flex items-center justify-center font-bold z-50">
-          {isInvalid ? '🔴' : isFocused ? '🔵' : '⚫'}
-        </div>
       </div>
       
       {error && (

@@ -4,67 +4,106 @@ import { Search, Filter, Clock, X, MapPin, Building } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
+import { buildApiUrl } from "../../config";
 import useSearchHistoryStore from "../../stores/useSearchHistoryStore";
 
-const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) => {
+interface SearchBoxProps {
+  onSearch?: (query: string) => void;
+  showAdvancedSearch?: boolean;
+  defaultValue?: string;
+}
+
+interface SearchSuggestion {
+  type: 'history' | 'title' | 'company' | 'location';
+  value: string;
+  timestamp?: number;
+  count?: number;
+}
+
+interface SearchHistoryItem {
+  query: string;
+  timestamp: number;
+  filters: Record<string, any>;
+  resultsCount: number;
+}
+
+const SearchBox: React.FC<SearchBoxProps> = ({ 
+  onSearch, 
+  showAdvancedSearch = false, 
+  defaultValue = "" 
+}) => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState(defaultValue);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [query, setQuery] = useState<string>(defaultValue);
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   
-  const searchRef = useRef(null);
-  const suggestionsRef = useRef(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   
   const { searches, addSearch } = useSearchHistoryStore();
 
-  // Mock job titles and companies for auto-complete
-  const mockSuggestions = [
-    { type: 'title', value: 'Software Developer', count: 245 },
-    { type: 'title', value: 'Data Analyst', count: 189 },
-    { type: 'title', value: 'Project Manager', count: 156 },
-    { type: 'title', value: 'Marketing Specialist', count: 134 },
-    { type: 'title', value: 'Sales Representative', count: 98 },
-    { type: 'company', value: 'Google Australia', count: 23 },
-    { type: 'company', value: 'Microsoft', count: 19 },
-    { type: 'company', value: 'Atlassian', count: 15 },
-    { type: 'company', value: 'Canva', count: 12 },
-    { type: 'location', value: 'Sydney, NSW', count: 456 },
-    { type: 'location', value: 'Melbourne, VIC', count: 389 },
-    { type: 'location', value: 'Brisbane, QLD', count: 234 },
-  ];
+  // Fetch search suggestions from API
+  const fetchSearchSuggestions = async (searchQuery: string): Promise<SearchSuggestion[]> => {
+    try {
+      if (!searchQuery.trim()) {
+        // Return recent searches when no query
+        return searches.slice(0, 5).map(search => ({
+          type: 'history' as const,
+          value: search.query,
+          timestamp: search.timestamp
+        }));
+      }
 
-  // Get filtered suggestions based on query
-  const getFilteredSuggestions = (searchQuery) => {
-    if (!searchQuery.trim()) {
-      return searches.slice(0, 5).map(search => ({
-        type: 'history',
-        value: search.query,
-        timestamp: search.timestamp
-      }));
+      const response = await fetch(buildApiUrl('/search/suggestions'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          query: searchQuery.trim(),
+          limit: 8 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch suggestions');
+      }
+
+      const data = await response.json();
+      return data.suggestions || [];
+    } catch (error) {
+      console.error('Failed to fetch search suggestions:', error);
+      
+      // Fallback to local search history
+      return searches
+        .filter(search => 
+          search.query.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .slice(0, 5)
+        .map(search => ({
+          type: 'history' as const,
+          value: search.query,
+          timestamp: search.timestamp
+        }));
     }
-
-    const filtered = mockSuggestions.filter(suggestion =>
-      suggestion.value.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return filtered.slice(0, 8);
   };
 
-  // Handle input change with debouncing
+  // Handle input change with debouncing and API calls
   useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      if (query.length > 0) {
-        setLoading(true);
-        // Simulate API call delay
-        setTimeout(() => {
-          setSuggestions(getFilteredSuggestions(query));
-          setLoading(false);
-        }, 200);
-      } else {
-        setSuggestions(getFilteredSuggestions(""));
+    const debounceTimer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const newSuggestions = await fetchSearchSuggestions(query);
+        setSuggestions(newSuggestions);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        setSuggestions([]);
+      } finally {
+        setLoading(false);
       }
     }, 300);
 
@@ -73,8 +112,8 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
 
   // Handle click outside to close suggestions
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
         setHighlightedIndex(-1);
       }
@@ -85,7 +124,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
   }, []);
 
   // Handle keyboard navigation
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions) return;
 
     switch (e.key) {
@@ -114,7 +153,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
     }
   };
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     setQuery(suggestion.value);
     setShowSuggestions(false);
     setHighlightedIndex(-1);
@@ -129,7 +168,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
     }
   };
 
-  const performSearch = (searchQuery) => {
+  const performSearch = (searchQuery: string) => {
     // Add to search history
     addSearch({
       query: searchQuery,
@@ -152,7 +191,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
     setHighlightedIndex(-1);
   };
 
-  const getSuggestionIcon = (type) => {
+  const getSuggestionIcon = (type: string) => {
     switch (type) {
       case 'title':
         return <Search className="w-4 h-4" />;
@@ -167,7 +206,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
     }
   };
 
-  const highlightMatch = (text, query) => {
+  const highlightMatch = (text: string, query: string): string => {
     if (!query.trim()) return text;
     
     const regex = new RegExp(`(${query})`, 'gi');
@@ -270,7 +309,7 @@ const SearchBox = ({ onSearch, showAdvancedSearch = false, defaultValue = "" }) 
                             {suggestion.type} • {suggestion.count} jobs
                           </div>
                         )}
-                        {suggestion.type === 'history' && (
+                        {suggestion.type === 'history' && suggestion.timestamp && (
                           <div className="text-xs text-gray-500">
                             {new Date(suggestion.timestamp).toLocaleDateString()}
                           </div>

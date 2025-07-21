@@ -24,21 +24,17 @@ const useAuthStore = create<AuthState>()(
 
             // Initialize authentication state by checking session
             initialize: async () => {
-                console.log('🔄 Auth store initializing...');
                 try {
                     // First try to restore from storage
                     const storedUser = get().user;
                     if (storedUser) {
-                        console.log('📦 Found stored user data:', storedUser.email);
                         set({ user: storedUser, isAuthenticated: true });
                     }
 
                     // Then validate session with backend
                     const isValid = await get().checkSession();
-                    console.log('🔄 Session check result:', isValid);
 
                     if (!isValid) {
-                        console.log('❌ Session invalid, clearing user data');
                         set({ user: null, isAuthenticated: false });
                     }
                 } catch (error) {
@@ -50,13 +46,10 @@ const useAuthStore = create<AuthState>()(
             // Check if current session is valid
             checkSession: async () => {
                 try {
-                    console.log('🔍 Checking session validity...');
                     const response = await httpClient.get(`${config.apiBaseUrl}/auth/@me`);
 
                     if (response.data && response.data.user) {
                         const userData = response.data.user;
-                        console.log('✅ Session valid, user found:', userData.email);
-                        console.log('👤 Profile data:', userData.profile);
 
                         set({
                             user: {
@@ -87,7 +80,6 @@ const useAuthStore = create<AuthState>()(
 
             login: async (email: string, password: string, rememberMe = false) => {
                 try {
-                    console.log('🔐 Attempting login for:', email);
                     const response = await httpClient.post(`${config.apiBaseUrl}/auth/login`, {
                         email,
                         password,
@@ -96,8 +88,6 @@ const useAuthStore = create<AuthState>()(
 
                     if (response.data && response.data.user) {
                         const userData = response.data.user;
-                        console.log('✅ Login successful:', { userId: userData.id });
-                        console.log('👤 Profile data:', userData.profile);
 
                         set({
                             user: {
@@ -127,7 +117,6 @@ const useAuthStore = create<AuthState>()(
 
             register: async (name: string, email: string, password: string, role: string) => {
                 try {
-                    console.log('📝 Attempting registration for:', email);
                     const response = await httpClient.post(`${config.apiBaseUrl}/auth/register`, {
                         name,
                         email,
@@ -137,8 +126,6 @@ const useAuthStore = create<AuthState>()(
 
                     if (response.data && response.data.user) {
                         const userData = response.data.user;
-                        console.log('✅ Registration successful:', { userId: userData.id });
-                        console.log('👤 Profile data:', userData.profile);
 
                         set({
                             user: {
@@ -168,7 +155,6 @@ const useAuthStore = create<AuthState>()(
 
             loginWithGoogle: async () => {
                 try {
-                    console.log('🔄 Initiating Google OAuth login...');
                     // For session-based OAuth, redirect to backend OAuth initiation endpoint
                     const redirectUrl = `${config.apiBaseUrl}/auth/google/login`;
                     window.location.href = redirectUrl;
@@ -180,7 +166,6 @@ const useAuthStore = create<AuthState>()(
 
             loginWithLinkedIn: async () => {
                 try {
-                    console.log('🔄 Initiating LinkedIn OAuth login...');
                     // For session-based OAuth, redirect to backend OAuth initiation endpoint  
                     const redirectUrl = `${config.apiBaseUrl}/auth/linkedin/login`;
                     window.location.href = redirectUrl;
@@ -192,13 +177,11 @@ const useAuthStore = create<AuthState>()(
 
             logout: async () => {
                 try {
-                    console.log('🚪 Logging out user');
                     // Call backend logout endpoint if it exists
                     try {
                         await httpClient.post(`${config.apiBaseUrl}/auth/logout`);
                     } catch (error) {
                         // Logout endpoint might not exist, that's okay
-                        console.log('No logout endpoint, clearing session locally');
                     }
 
                     set({
@@ -206,7 +189,7 @@ const useAuthStore = create<AuthState>()(
                         isAuthenticated: false,
                     });
                 } catch (error) {
-                    console.error('❌ Logout error:', error);
+                    console.error('Logout error:', error);
                     // Clear local state anyway
                     set({
                         user: null,
@@ -224,9 +207,6 @@ const useAuthStore = create<AuthState>()(
             }),
             onRehydrateStorage: () => (state) => {
                 if (state) {
-                    console.log('💾 Store rehydrated:', {
-                        hasUser: !!state.user,
-                    });
                     // Don't set isAuthenticated from storage
                     // It will be set by initialize() which checks the session
                     state.isAuthenticated = false;

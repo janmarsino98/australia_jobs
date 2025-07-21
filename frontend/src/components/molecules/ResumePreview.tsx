@@ -90,20 +90,10 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
       }
     } catch (error: any) {
       console.error("Error parsing resume:", error);
-      // Fall back to mock data if parsing fails
-      return {
-        personalInfo: {
-          name: "Resume Content",
-          email: "Unable to extract email",
-          phone: "Unable to extract phone",
-          location: "Unable to extract location"
-        },
-        summary: "Resume content could not be parsed. Please ensure the file is in a supported format.",
-        experience: [],
-        education: [],
-        skills: [],
-        certifications: []
-      };
+      
+      // Instead of returning mock data, throw a descriptive error
+      const errorMessage = error.response?.data?.message || error.message || "Resume parsing failed";
+      throw new Error(`Resume parsing unavailable: ${errorMessage}`);
     }
     
     throw new Error("Invalid parameters");
@@ -131,47 +121,25 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
         });
       }
       
-      return response?.data || getMockAnalysis();
-    } catch (error) {
+      if (!response?.data) {
+        throw new Error("Analysis service returned no data");
+      }
+
+      // Validate the analysis response
+      const analysisData = response.data;
+      if (!analysisData.score && !analysisData.atsScore) {
+        throw new Error("Invalid analysis response format");
+      }
+
+      return analysisData;
+    } catch (error: any) {
       console.error("Error analyzing resume:", error);
-      // Return mock analysis if API fails
-      return getMockAnalysis();
+      
+      // Instead of returning mock data, throw a descriptive error
+      const errorMessage = error.response?.data?.message || error.message || "Resume analysis failed";
+      throw new Error(`Resume analysis unavailable: ${errorMessage}`);
     }
   };
-
-  // Fallback mock analysis for when API is not available
-  const getMockAnalysis = (): ResumeAnalysis => ({
-    score: 78,
-    atsScore: 75,
-    strengths: [
-      "Professional format and layout",
-      "Contains relevant keywords",
-      "Clear section organization",
-      "Contact information provided"
-    ],
-    improvements: [
-      "Add more quantified achievements",
-      "Include relevant keywords for target jobs",
-      "Consider adding a projects section",
-      "Improve skills categorization"
-    ],
-    keywords: ["Resume", "Professional", "Skills", "Experience"],
-    sections: {
-      personalInfo: { present: true, quality: 'good' },
-      summary: { present: true, quality: 'fair' },
-      experience: { 
-        present: true, 
-        quality: 'fair',
-        suggestions: ["Add more quantified achievements", "Use stronger action verbs"]
-      },
-      education: { present: true, quality: 'good' },
-      skills: { 
-        present: true, 
-        quality: 'good',
-        suggestions: ["Consider organizing skills by category"]
-      }
-    }
-  });
 
   useEffect(() => {
     if (resumeFile || resumeId) {

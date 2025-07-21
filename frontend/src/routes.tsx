@@ -26,6 +26,10 @@ import ResourcesPage from "./pages/ResourcesPage";
 import AdvicePage from "./pages/AdvicePage";
 import JobPostingPage from "./pages/JobPostingPage";
 import JobManagementPage from "./pages/JobManagementPage";
+import SavedJobsPage from "./pages/SavedJobsPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfServicePage from "./pages/TermsOfServicePage";
+import CookiePolicyPage from "./pages/CookiePolicyPage";
 import { Outlet } from "react-router-dom";
 
 
@@ -130,6 +134,14 @@ const routes = createBrowserRouter([
         ),
       },
       {
+        path: "/saved",
+        element: (
+          <AuthGuard>
+            <SavedJobsPage />
+          </AuthGuard>
+        ),
+      },
+      {
         path: "/settings",
         element: (
           <AuthGuard>
@@ -152,6 +164,18 @@ const routes = createBrowserRouter([
       {
         path: "/resources",
         element: <ResourcesPage />,
+      },
+      {
+        path: "/privacy-policy",
+        element: <PrivacyPolicyPage />,
+      },
+      {
+        path: "/terms-of-service",
+        element: <TermsOfServicePage />,
+      },
+      {
+        path: "/cookie-policy",
+        element: <CookiePolicyPage />,
       },
       {
         path: "/post-job",

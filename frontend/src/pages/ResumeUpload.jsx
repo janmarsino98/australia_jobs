@@ -50,7 +50,7 @@ export default function CVAnalysisPage() {
         });
         setUser(resp.data);
       } catch (e) {
-        console.log(e);
+        // Failed to fetch user
       }
     };
 
@@ -81,15 +81,8 @@ export default function CVAnalysisPage() {
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) {
-      console.log("No file selected");
       return;
     }
-
-    console.log("File selected:", {
-      name: file.name,
-      type: file.type,
-      size: file.size
-    });
 
     // Validate file type
     const allowedTypes = ['application/pdf'];
@@ -114,9 +107,7 @@ export default function CVAnalysisPage() {
     }
 
     try {
-      console.log("Starting file upload...");
       const resumeData = await uploadResume(file);
-      console.log("Upload successful:", resumeData);
       
       setUploadedFile(file);
       setAnalysisState("idle");
@@ -172,7 +163,7 @@ export default function CVAnalysisPage() {
   };
 
   const handleAnalysisComplete = (analysis) => {
-    console.log("Analysis completed:", analysis);
+    // Analysis completed
   };
 
   return (

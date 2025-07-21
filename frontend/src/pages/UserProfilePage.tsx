@@ -30,7 +30,12 @@ import {
   X,
   Plus,
   Trash2,
-  Star
+  Star,
+  Building,
+  DollarSign,
+  Home,
+  Clock,
+  Target
 } from "lucide-react";
 import * as z from "zod";
 
@@ -67,6 +72,19 @@ const educationSchema = z.object({
   endDate: z.string().optional(),
   current: z.boolean().default(false),
   gpa: z.string().optional()
+});
+
+const preferencesSchema = z.object({
+  jobType: z.array(z.string()).optional(),
+  industry: z.array(z.string()).optional(),
+  workArrangement: z.array(z.string()).optional(),
+  salaryRange: z.object({
+    min: z.number().min(0).optional(),
+    max: z.number().min(0).optional()
+  }).optional(),
+  locationRadius: z.number().min(0).max(100).optional(),
+  companySize: z.array(z.string()).optional(),
+  benefits: z.array(z.string()).optional()
 });
 
 interface UserProfile {
@@ -185,6 +203,19 @@ const UserProfilePage = () => {
       endDate: "",
       current: false,
       gpa: ""
+    }
+  });
+
+  const preferencesForm = useZodForm({
+    schema: preferencesSchema,
+    defaultValues: {
+      jobType: [],
+      industry: [],
+      workArrangement: [],
+      salaryRange: { min: undefined, max: undefined },
+      locationRadius: 25,
+      companySize: [],
+      benefits: []
     }
   });
 
@@ -372,6 +403,95 @@ const UserProfilePage = () => {
       }
     } catch (error) {
       console.error("Failed to add education:", error);
+    }
+  };
+
+  const removeExperience = async (experienceId: string) => {
+    try {
+      const response = await fetch(buildApiUrl(`/users/profile/experience/${experienceId}`), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setProfile(prev => prev ? {
+          ...prev,
+          experience: prev.experience?.filter(exp => exp.id !== experienceId) || []
+        } : null);
+        
+        toast({
+          title: "Experience Removed",
+          description: "Work experience has been removed from your profile.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to remove experience:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove experience. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const removeEducation = async (educationId: string) => {
+    try {
+      const response = await fetch(buildApiUrl(`/users/profile/education/${educationId}`), {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        setProfile(prev => prev ? {
+          ...prev,
+          education: prev.education?.filter(edu => edu.id !== educationId) || []
+        } : null);
+        
+        toast({
+          title: "Education Removed",
+          description: "Education has been removed from your profile.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to remove education:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove education. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updatePreferences = async (data: any) => {
+    try {
+      const response = await fetch(buildApiUrl('/users/profile/preferences'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        const updatedPreferences = await response.json();
+        setProfile(prev => prev ? {
+          ...prev,
+          preferences: updatedPreferences
+        } : null);
+        
+        toast({
+          title: "Preferences Updated",
+          description: "Your job preferences have been updated successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update preferences:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update preferences. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -603,10 +723,180 @@ const UserProfilePage = () => {
                     Work Experience
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-searchbar-text mb-4">
-                    Experience section coming soon...
-                  </p>
+                <CardContent className="space-y-6">
+                  {/* Add New Experience Form */}
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 space-y-4">
+                    <h3 className="text-lg font-medium text-main-text">Add New Experience</h3>
+                    <form onSubmit={experienceForm.handleSubmit(addExperience)} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormInput
+                          label="Job Title"
+                          Icon={Briefcase}
+                          error={experienceForm.formState.errors.jobTitle?.message}
+                          {...experienceForm.register("jobTitle")}
+                        />
+                        
+                        <FormInput
+                          label="Company"
+                          Icon={Building}
+                          error={experienceForm.formState.errors.company?.message}
+                          {...experienceForm.register("company")}
+                        />
+                      </div>
+
+                      <FormInput
+                        label="Location"
+                        Icon={MapPin}
+                        placeholder="Sydney, NSW"
+                        error={experienceForm.formState.errors.location?.message}
+                        {...experienceForm.register("location")}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormInput
+                          label="Start Date"
+                          Icon={Calendar}
+                          inputType="month"
+                          error={experienceForm.formState.errors.startDate?.message}
+                          {...experienceForm.register("startDate")}
+                        />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="current-role"
+                              {...experienceForm.register("current")}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor="current-role" className="text-sm font-medium text-main-text">
+                              I currently work here
+                            </label>
+                          </div>
+                          {!experienceForm.watch("current") && (
+                            <FormInput
+                              label="End Date"
+                              Icon={Calendar}
+                              inputType="month"
+                              error={experienceForm.formState.errors.endDate?.message}
+                              {...experienceForm.register("endDate")}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-main-text">
+                          Job Description
+                        </label>
+                        <textarea
+                          {...experienceForm.register("description")}
+                          className="w-full min-h-[100px] p-3 border border-gray-200 rounded-md resize-none focus:ring-2 focus:ring-pill-text focus:border-transparent"
+                          placeholder="Describe your role, responsibilities, and key achievements..."
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={experienceForm.formState.isSubmitting}
+                        >
+                          {experienceForm.formState.isSubmitting ? (
+                            <>
+                              <LoadingSpinner className="h-4 w-4 mr-2" />
+                              Adding...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Experience
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => experienceForm.reset()}
+                        >
+                          Clear Form
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Existing Experience List */}
+                  <div className="space-y-4">
+                    {profile?.experience?.map((exp, index) => (
+                      <motion.div
+                        key={exp.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="border border-gray-200 rounded-lg p-6 space-y-3"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-main-text">
+                              {exp.jobTitle}
+                            </h4>
+                            <p className="text-pill-text font-medium">{exp.company}</p>
+                            {exp.location && (
+                              <p className="text-searchbar-text text-sm flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {exp.location}
+                              </p>
+                            )}
+                            <p className="text-searchbar-text text-sm flex items-center">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {new Date(exp.startDate).toLocaleDateString('en-AU', { 
+                                year: 'numeric', 
+                                month: 'long' 
+                              })} - {
+                                exp.current 
+                                  ? 'Present' 
+                                  : exp.endDate 
+                                    ? new Date(exp.endDate).toLocaleDateString('en-AU', { 
+                                        year: 'numeric', 
+                                        month: 'long' 
+                                      })
+                                    : 'Not specified'
+                              }
+                            </p>
+                          </div>
+                          
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => setEditingExperience(exp.id)}
+                              className="text-gray-500 hover:text-pill-text"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => removeExperience(exp.id)}
+                              className="text-gray-500 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {exp.description && (
+                          <div className="text-sm text-searchbar-text pt-2 border-t border-gray-100">
+                            <p className="whitespace-pre-wrap">{exp.description}</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {(!profile?.experience || profile.experience.length === 0) && (
+                    <div className="text-center py-8 text-searchbar-text">
+                      <Briefcase className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p>No work experience added yet.</p>
+                      <p className="text-sm">Add your professional experience to help employers understand your background.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -619,10 +909,181 @@ const UserProfilePage = () => {
                     Education
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-searchbar-text mb-4">
-                    Education section coming soon...
-                  </p>
+                <CardContent className="space-y-6">
+                  {/* Add New Education Form */}
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 space-y-4">
+                    <h3 className="text-lg font-medium text-main-text">Add New Education</h3>
+                    <form onSubmit={educationForm.handleSubmit(addEducation)} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormInput
+                          label="Degree/Qualification"
+                          Icon={GraduationCap}
+                          placeholder="Bachelor of Computer Science"
+                          error={educationForm.formState.errors.degree?.message}
+                          {...educationForm.register("degree")}
+                        />
+                        
+                        <FormInput
+                          label="Institution"
+                          Icon={Building}
+                          placeholder="University of Sydney"
+                          error={educationForm.formState.errors.institution?.message}
+                          {...educationForm.register("institution")}
+                        />
+                      </div>
+
+                      <FormInput
+                        label="Location"
+                        Icon={MapPin}
+                        placeholder="Sydney, NSW"
+                        error={educationForm.formState.errors.location?.message}
+                        {...educationForm.register("location")}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormInput
+                          label="Start Date"
+                          Icon={Calendar}
+                          inputType="month"
+                          error={educationForm.formState.errors.startDate?.message}
+                          {...educationForm.register("startDate")}
+                        />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="current-study"
+                              {...educationForm.register("current")}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor="current-study" className="text-sm font-medium text-main-text">
+                              Currently studying
+                            </label>
+                          </div>
+                          {!educationForm.watch("current") && (
+                            <FormInput
+                              label="End Date"
+                              Icon={Calendar}
+                              inputType="month"
+                              error={educationForm.formState.errors.endDate?.message}
+                              {...educationForm.register("endDate")}
+                            />
+                          )}
+                        </div>
+
+                        <FormInput
+                          label="GPA (Optional)"
+                          Icon={Star}
+                          placeholder="3.8/4.0 or HD"
+                          error={educationForm.formState.errors.gpa?.message}
+                          {...educationForm.register("gpa")}
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="submit"
+                          disabled={educationForm.formState.isSubmitting}
+                        >
+                          {educationForm.formState.isSubmitting ? (
+                            <>
+                              <LoadingSpinner className="h-4 w-4 mr-2" />
+                              Adding...
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Education
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => educationForm.reset()}
+                        >
+                          Clear Form
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Existing Education List */}
+                  <div className="space-y-4">
+                    {profile?.education?.map((edu, index) => (
+                      <motion.div
+                        key={edu.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="border border-gray-200 rounded-lg p-6 space-y-3"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-main-text">
+                              {edu.degree}
+                            </h4>
+                            <p className="text-pill-text font-medium">{edu.institution}</p>
+                            {edu.location && (
+                              <p className="text-searchbar-text text-sm flex items-center">
+                                <MapPin className="w-3 h-3 mr-1" />
+                                {edu.location}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 text-sm text-searchbar-text">
+                              <p className="flex items-center">
+                                <Calendar className="w-3 h-3 mr-1" />
+                                {new Date(edu.startDate).toLocaleDateString('en-AU', { 
+                                  year: 'numeric', 
+                                  month: 'long' 
+                                })} - {
+                                  edu.current 
+                                    ? 'Present' 
+                                    : edu.endDate 
+                                      ? new Date(edu.endDate).toLocaleDateString('en-AU', { 
+                                          year: 'numeric', 
+                                          month: 'long' 
+                                        })
+                                      : 'Not specified'
+                                }
+                              </p>
+                              {edu.gpa && (
+                                <p className="flex items-center">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  GPA: {edu.gpa}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 ml-4">
+                            <button
+                              onClick={() => setEditingEducation(edu.id)}
+                              className="text-gray-500 hover:text-pill-text"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => removeEducation(edu.id)}
+                              className="text-gray-500 hover:text-red-500"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {(!profile?.education || profile.education.length === 0) && (
+                    <div className="text-center py-8 text-searchbar-text">
+                      <GraduationCap className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <p>No education added yet.</p>
+                      <p className="text-sm">Add your educational background to showcase your qualifications.</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -636,9 +1097,198 @@ const UserProfilePage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-searchbar-text mb-4">
-                    Job preferences section coming soon...
-                  </p>
+                  <form onSubmit={preferencesForm.handleSubmit(updatePreferences)} className="space-y-8">
+                    {/* Job Types */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Briefcase className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Preferred Job Types</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {['Full-time', 'Part-time', 'Contract', 'Casual', 'Freelance', 'Internship'].map((type) => (
+                          <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={type}
+                              {...preferencesForm.register("jobType")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-main-text">{type}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Industries */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Target className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Preferred Industries</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          'Technology', 'Healthcare', 'Finance', 'Education', 'Marketing', 'Sales',
+                          'Engineering', 'Design', 'Construction', 'Hospitality', 'Retail', 'Manufacturing'
+                        ].map((industry) => (
+                          <label key={industry} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={industry}
+                              {...preferencesForm.register("industry")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-main-text">{industry}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Work Arrangement */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Home className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Work Arrangement</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {['Remote', 'Hybrid', 'On-site'].map((arrangement) => (
+                          <label key={arrangement} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={arrangement}
+                              {...preferencesForm.register("workArrangement")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-main-text">{arrangement}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Salary Range */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <DollarSign className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Salary Expectations (AUD per year)</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormInput
+                          label="Minimum Salary"
+                          Icon={DollarSign}
+                          inputType="number"
+                          placeholder="50000"
+                          error={preferencesForm.formState.errors.salaryRange?.min?.message}
+                          {...preferencesForm.register("salaryRange.min", { valueAsNumber: true })}
+                        />
+                        <FormInput
+                          label="Maximum Salary"
+                          Icon={DollarSign}
+                          inputType="number"
+                          placeholder="120000"
+                          error={preferencesForm.formState.errors.salaryRange?.max?.message}
+                          {...preferencesForm.register("salaryRange.max", { valueAsNumber: true })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location Preferences */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Location Radius</h3>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-main-text">
+                          How far are you willing to travel? ({preferencesForm.watch("locationRadius")} km)
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="5"
+                          {...preferencesForm.register("locationRadius", { valueAsNumber: true })}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-xs text-searchbar-text">
+                          <span>Local only</span>
+                          <span>100+ km</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Company Size */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Building className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Company Size Preference</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {['Startup (1-10)', 'Small (11-50)', 'Medium (51-200)', 'Large (200+)'].map((size) => (
+                          <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={size}
+                              {...preferencesForm.register("companySize")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-main-text">{size}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Benefits */}
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-2">
+                        <Award className="w-4 h-4 text-pill-text" />
+                        <h3 className="text-lg font-medium text-main-text">Important Benefits</h3>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          'Health Insurance', 'Flexible Hours', 'Professional Development', 
+                          'Retirement Plan', 'Paid Time Off', 'Work from Home',
+                          'Gym Membership', 'Stock Options', 'Maternity/Paternity Leave'
+                        ].map((benefit) => (
+                          <label key={benefit} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              value={benefit}
+                              {...preferencesForm.register("benefits")}
+                              className="rounded border-gray-300"
+                            />
+                            <span className="text-sm text-main-text">{benefit}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-6 border-t border-gray-200">
+                      <Button
+                        type="submit"
+                        disabled={preferencesForm.formState.isSubmitting}
+                        className="flex-1 md:flex-none"
+                      >
+                        {preferencesForm.formState.isSubmitting ? (
+                          <>
+                            <LoadingSpinner className="h-4 w-4 mr-2" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Preferences
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => preferencesForm.reset()}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </form>
                 </CardContent>
               </Card>
             )}

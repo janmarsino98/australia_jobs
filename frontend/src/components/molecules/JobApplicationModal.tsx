@@ -102,7 +102,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
           setHasExistingResume(true);
         }
       } catch (error) {
-        console.log("No existing resume found");
+        // No existing resume found
       }
     };
     

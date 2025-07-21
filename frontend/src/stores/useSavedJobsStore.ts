@@ -1,0 +1,157 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export interface SavedJob {
+  _id: string;
+  title: string;
+  firm: string;
+  location: string;
+  jobtype: string;
+  remuneration_amount?: string;
+  remuneration_period?: string;
+  description?: string;
+  posted?: string;
+  created_at?: string;
+  slug: string;
+  
+  // Saved job specific fields
+  savedAt: string;
+  notes?: string;
+  applied?: boolean;
+  status?: 'saved' | 'applied' | 'interview' | 'rejected';
+}
+
+interface SavedJobsState {
+  savedJobs: SavedJob[];
+  searchQuery: string;
+  filteredJobs: SavedJob[];
+  
+  // Actions
+  saveJob: (job: Omit<SavedJob, 'savedAt' | 'status'>) => void;
+  removeJob: (jobId: string) => void;
+  updateJobStatus: (jobId: string, status: SavedJob['status']) => void;
+  updateJobNotes: (jobId: string, notes: string) => void;
+  setSearchQuery: (query: string) => void;
+  getJobById: (jobId: string) => SavedJob | undefined;
+  clearAllSavedJobs: () => void;
+  exportSavedJobs: () => string;
+}
+
+const useSavedJobsStore = create<SavedJobsState>()(
+  persist(
+    (set, get) => ({
+      savedJobs: [],
+      searchQuery: '',
+      filteredJobs: [],
+
+      saveJob: (job) => {
+        const savedJob: SavedJob = {
+          ...job,
+          savedAt: new Date().toISOString(),
+          status: 'saved'
+        };
+        
+        set((state) => {
+          const exists = state.savedJobs.find(j => j._id === job._id);
+          if (exists) return state; // Don't add duplicates
+          
+          const newSavedJobs = [...state.savedJobs, savedJob];
+          return {
+            savedJobs: newSavedJobs,
+            filteredJobs: get().searchQuery ? 
+              newSavedJobs.filter(j => 
+                j.title.toLowerCase().includes(get().searchQuery.toLowerCase()) ||
+                j.firm.toLowerCase().includes(get().searchQuery.toLowerCase()) ||
+                j.location.toLowerCase().includes(get().searchQuery.toLowerCase())
+              ) : newSavedJobs
+          };
+        });
+      },
+
+      removeJob: (jobId) => {
+        set((state) => {
+          const newSavedJobs = state.savedJobs.filter(job => job._id !== jobId);
+          return {
+            savedJobs: newSavedJobs,
+            filteredJobs: state.searchQuery ? 
+              newSavedJobs.filter(j => 
+                j.title.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                j.firm.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
+                j.location.toLowerCase().includes(state.searchQuery.toLowerCase())
+              ) : newSavedJobs
+          };
+        });
+      },
+
+      updateJobStatus: (jobId, status) => {
+        set((state) => ({
+          savedJobs: state.savedJobs.map(job =>
+            job._id === jobId ? { ...job, status } : job
+          ),
+          filteredJobs: state.filteredJobs.map(job =>
+            job._id === jobId ? { ...job, status } : job
+          )
+        }));
+      },
+
+      updateJobNotes: (jobId, notes) => {
+        set((state) => ({
+          savedJobs: state.savedJobs.map(job =>
+            job._id === jobId ? { ...job, notes } : job
+          ),
+          filteredJobs: state.filteredJobs.map(job =>
+            job._id === jobId ? { ...job, notes } : job
+          )
+        }));
+      },
+
+      setSearchQuery: (query) => {
+        set((state) => ({
+          searchQuery: query,
+          filteredJobs: query ? 
+            state.savedJobs.filter(job => 
+              job.title.toLowerCase().includes(query.toLowerCase()) ||
+              job.firm.toLowerCase().includes(query.toLowerCase()) ||
+              job.location.toLowerCase().includes(query.toLowerCase()) ||
+              job.jobtype.toLowerCase().includes(query.toLowerCase())
+            ) : state.savedJobs
+        }));
+      },
+
+      getJobById: (jobId) => {
+        return get().savedJobs.find(job => job._id === jobId);
+      },
+
+      clearAllSavedJobs: () => {
+        set({
+          savedJobs: [],
+          filteredJobs: [],
+          searchQuery: ''
+        });
+      },
+
+      exportSavedJobs: () => {
+        const jobs = get().savedJobs;
+        const exportData = jobs.map(job => ({
+          title: job.title,
+          company: job.firm,
+          location: job.location,
+          jobType: job.jobtype,
+          salary: job.remuneration_amount && job.remuneration_period ? 
+            `${job.remuneration_amount} ${job.remuneration_period}` : '',
+          savedDate: new Date(job.savedAt).toLocaleDateString(),
+          status: job.status || 'saved',
+          notes: job.notes || ''
+        }));
+        
+        return JSON.stringify(exportData, null, 2);
+      }
+    }),
+    {
+      name: 'saved-jobs-store',
+      version: 1
+    }
+  )
+);
+
+export default useSavedJobsStore;

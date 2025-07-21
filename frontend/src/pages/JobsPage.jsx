@@ -108,16 +108,6 @@ export default function JobsPage() {
   const watchedTitle = watch("title");
   const watchedLocation = watch("location");
   
-  // Debug logging for location value
-  React.useEffect(() => {
-    if (watchedLocation) {
-      console.log('🔍 Current location value:', {
-        type: typeof watchedLocation,
-        value: watchedLocation,
-        formatted: formatLocation(watchedLocation)
-      });
-    }
-  }, [watchedLocation]);
 
   const fetchUser = async () => {
     try {
