@@ -20,6 +20,10 @@ import PricingInformationPage from "./pages/PricingInformationPage";
 import PayingPage from "./pages/PayingPage";
 import Landing from "./pages/Landing";
 import Job from "./pages/Job";
+import SettingsPage from "./pages/SettingsPage";
+import ApplicationsPage from "./pages/ApplicationsPage";
+import ResourcesPage from "./pages/ResourcesPage";
+import AdvicePage from "./pages/AdvicePage";
 import { Outlet } from "react-router-dom";
 
 
@@ -122,6 +126,30 @@ const routes = createBrowserRouter([
             <JobPage />
           </AuthGuard>
         ),
+      },
+      {
+        path: "/settings",
+        element: (
+          <AuthGuard>
+            <SettingsPage />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: "/applications",
+        element: (
+          <AuthGuard>
+            <ApplicationsPage />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: "/advice",
+        element: <AdvicePage />,
+      },
+      {
+        path: "/resources",
+        element: <ResourcesPage />,
       },
       {
         path: "/employer",
