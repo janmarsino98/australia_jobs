@@ -17,7 +17,7 @@ const JobPage = (): JSX.Element => {
       setLoading(true);
       const categoryQuery = selectedCategories.join(",");
       const response = await httpClient.get<Job[]>(
-        `http://localhost:5000/jobs/get?type=${categoryQuery}`
+        `/jobs/get?type=${categoryQuery}`
       );
       setJobs(response.data);
       setError(null);

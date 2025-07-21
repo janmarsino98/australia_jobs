@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation, Link } from "react-router-dom";
+import { buildApiUrl } from "../config";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter } from "../components/ui/card";
@@ -42,7 +43,7 @@ const EmailVerificationPage = () => {
       setStatus('verifying');
       console.log('🔍 Verifying email with token');
       
-      const response = await fetch(`http://localhost:5000/auth/verify-email`, {
+      const response = await fetch(buildApiUrl('/auth/verify-email'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ const EmailVerificationPage = () => {
       setIsResending(true);
       console.log('📧 Resending verification email to:', email);
       
-      const response = await fetch(`http://localhost:5000/auth/resend-verification`, {
+      const response = await fetch(buildApiUrl('/auth/resend-verification'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

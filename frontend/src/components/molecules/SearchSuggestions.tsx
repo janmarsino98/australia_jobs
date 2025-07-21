@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, MapPin, Briefcase } from 'lucide-react';
 import httpClient from '../../httpClient';
+import { buildApiUrl } from '../../config';
 
 interface Suggestion {
   value: string;
@@ -38,9 +39,9 @@ export const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
       try {
         let endpoint = '';
         if (type === 'title') {
-          endpoint = `http://localhost:5000/jobs/suggestions/titles?q=${encodeURIComponent(query)}`;
+          endpoint = buildApiUrl(`/jobs/suggestions/titles?q=${encodeURIComponent(query)}`);
         } else {
-          endpoint = `http://localhost:5000/jobs/suggestions/locations?q=${encodeURIComponent(query)}`;
+          endpoint = buildApiUrl(`/jobs/suggestions/locations?q=${encodeURIComponent(query)}`);
         }
 
         const response = await httpClient.get(endpoint);

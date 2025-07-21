@@ -50,7 +50,7 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({
     try {
       setLoading(true);
       // Mock recommendation logic based on user profile
-      const response = await httpClient.get("http://localhost:5000/jobs/get?limit=6");
+      const response = await httpClient.get("/jobs/get?limit=6");
       
       // Add mock match scores and reasons for demonstration
       const jobsWithScores = response.data.map((job: any, index: number) => ({

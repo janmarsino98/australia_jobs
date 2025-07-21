@@ -30,7 +30,7 @@ const PaymentForm = ({ selectedPackage }) => {
     const createPaymentIntent = async () => {
       try {
         const response = await httpClient.post(
-          "http://localhost:5000/cities/create-payment-intent",
+          "/cities/create-payment-intent",
           {
             price_id: "price_1HgqICF5ZyVexXXXXXX",
             price: selectedPackage.price,

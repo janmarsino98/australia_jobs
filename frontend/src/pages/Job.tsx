@@ -34,7 +34,7 @@ const JobDetailsPage: React.FC = () => {
 
   const fetchJob = async () => {
     try {
-      const resp = await httpClient.get<JobData>(`http://localhost:5000/jobs/${slug}`);
+      const resp = await httpClient.get<JobData>(`/jobs/${slug}`);
       setJob(resp.data);
     } catch (error) {
       console.error("Error while trying to fetch job: ", error);

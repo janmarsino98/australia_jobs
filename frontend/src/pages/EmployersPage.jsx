@@ -2,8 +2,12 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { useNavigate } from 'react-router-dom';
+import useAuthStore from '../stores/useAuthStore';
 
 const EmployersPage = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuthStore();
   const advantages = [
     {
       title: "Access Wide Talent Pool",
@@ -64,10 +68,26 @@ const EmployersPage = () => {
             Post jobs, find candidates, and build your dream team.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Button size="lg" className="bg-white text-main-text hover:bg-gray-100">
+            <Button 
+              size="lg" 
+              className="bg-white text-main-text hover:bg-gray-100"
+              onClick={() => {
+                if (isAuthenticated && user?.role === 'employer') {
+                  navigate('/post-job');
+                } else if (isAuthenticated) {
+                  navigate('/settings'); // Let them change their role or show error
+                } else {
+                  navigate('/login');
+                }
+              }}
+            >
               Post a Job Now
             </Button>
-            <Button size="lg" className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-main-text">
+            <Button 
+              size="lg" 
+              className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-main-text"
+              onClick={() => navigate('/pricing')}
+            >
               View Pricing Plans
             </Button>
           </div>
@@ -189,7 +209,11 @@ const EmployersPage = () => {
             </Card>
           </div>
 
-          <Button size="lg" className="bg-pill-text hover:bg-pill-text/90">
+          <Button 
+            size="lg" 
+            className="bg-pill-text hover:bg-pill-text/90"
+            onClick={() => navigate('/pricing')}
+          >
             View Full Pricing Details
           </Button>
         </div>
@@ -205,10 +229,29 @@ const EmployersPage = () => {
             Join thousands of successful employers who have found their perfect candidates through AusJobs
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Button size="lg" className="bg-pill-text hover:bg-pill-text/90">
+            <Button 
+              size="lg" 
+              className="bg-pill-text hover:bg-pill-text/90"
+              onClick={() => {
+                if (isAuthenticated && user?.role === 'employer') {
+                  navigate('/post-job');
+                } else if (isAuthenticated) {
+                  navigate('/employer/dashboard');
+                } else {
+                  navigate('/login');
+                }
+              }}
+            >
               Post Your First Job
             </Button>
-            <Button variant="outline" size="lg">
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={() => {
+                // Create contact form or mailto link
+                window.location.href = 'mailto:sales@ausjobs.com?subject=Sales Inquiry';
+              }}
+            >
               Contact Sales Team
             </Button>
           </div>
@@ -221,13 +264,13 @@ const EmployersPage = () => {
             © 2024 AusJobs. All rights reserved.
           </div>
           <div className="flex space-x-4">
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/privacy" className="text-sm hover:text-blue-300">
               Privacy
             </a>
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/terms" className="text-sm hover:text-blue-300">
               Terms
             </a>
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/cookies" className="text-sm hover:text-blue-300">
               Cookies
             </a>
           </div>

@@ -34,7 +34,7 @@ const LocationDisplayer: React.FC<LocationDisplayerProps> = ({ onLocationChange 
     const fetchCities = async () => {
       try {
         const response = await httpClient.get<City[]>(
-          "http://localhost:5000/cities/get_all"
+          "/cities/get_all"
         );
         const new_cities = response.data
           .filter((city) => city.state === selectedState)
@@ -56,7 +56,7 @@ const LocationDisplayer: React.FC<LocationDisplayerProps> = ({ onLocationChange 
     const fetchStates = async () => {
       try {
         const response = await httpClient.get<State[]>(
-          "http://localhost:5000/states/get_all"
+          "/states/get_all"
         );
         const new_states = response.data.map((state) => state.state);
         setStates(new_states);

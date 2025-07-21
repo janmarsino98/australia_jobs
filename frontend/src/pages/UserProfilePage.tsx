@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { buildApiUrl } from "../config";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -192,7 +193,7 @@ const UserProfilePage = () => {
     const loadProfile = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:5000/users/profile", {
+        const response = await fetch(buildApiUrl('/users/profile'), {
           credentials: 'include'
         });
 
@@ -303,7 +304,7 @@ const UserProfilePage = () => {
 
   const updateSkills = async (skills: string[]) => {
     try {
-      await fetch("http://localhost:5000/users/profile/skills", {
+      await fetch(buildApiUrl('/users/profile/skills'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -318,7 +319,7 @@ const UserProfilePage = () => {
 
   const addExperience = async (data: any) => {
     try {
-      const response = await fetch("http://localhost:5000/users/profile/experience", {
+      const response = await fetch(buildApiUrl('/users/profile/experience'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -347,7 +348,7 @@ const UserProfilePage = () => {
 
   const addEducation = async (data: any) => {
     try {
-      const response = await fetch("http://localhost:5000/users/profile/education", {
+      const response = await fetch(buildApiUrl('/users/profile/education'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

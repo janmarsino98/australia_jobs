@@ -45,7 +45,7 @@ export default function CVAnalysisPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const resp = await httpClient.get("http://localhost:5000/auth/@me", {
+        const resp = await httpClient.get("/auth/@me", {
           withCredentials: true,
         });
         setUser(resp.data);

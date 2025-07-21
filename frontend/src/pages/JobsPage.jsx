@@ -121,7 +121,7 @@ export default function JobsPage() {
 
   const fetchUser = async () => {
     try {
-      const resp = await httpClient.get("http://localhost:5000/auth/@me");
+      const resp = await httpClient.get("/auth/@me");
       setUser(resp.data);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -134,7 +134,7 @@ export default function JobsPage() {
       setShowTitleSuggestions(false);
       setShowLocationSuggestions(false);
 
-      const endpoint = new URL("http://localhost:5000/jobs/get");
+      const endpoint = new URL("/jobs/get", httpClient.defaults.baseURL);
       
       if (data.title) endpoint.searchParams.append("title", data.title);
       if (data.location) endpoint.searchParams.append("location", formatLocation(data.location));
@@ -169,7 +169,7 @@ export default function JobsPage() {
 
   const fetchCities = async () => {
     try {
-      const resp = await httpClient.get("http://localhost:5000/cities/get_main");
+      const resp = await httpClient.get("/cities/get_main");
       // Ensure cities is always an array
       setCities(Array.isArray(resp.data) ? resp.data : []);
     } catch (error) {

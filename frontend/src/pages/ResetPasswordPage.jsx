@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { buildApiUrl } from "../config";
 import { AiOutlineMail, AiOutlineLock } from "react-icons/ai";
 import { useZodForm } from "../hooks/useZodForm";
 import { resetPasswordSchema, resetPasswordRequestSchema } from "../lib/validations/forms";
@@ -35,7 +36,7 @@ const ResetPasswordPage = () => {
   const onRequestSubmit = async (data) => {
     try {
       console.log('📧 Requesting password reset for:', data.email);
-      const response = await fetch(`http://localhost:5000/auth/reset-password/request`, {
+      const response = await fetch(buildApiUrl('/auth/reset-password/request'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +66,7 @@ const ResetPasswordPage = () => {
   const onResetSubmit = async (data) => {
     try {
       console.log('🔐 Resetting password with code');
-      const response = await fetch(`http://localhost:5000/auth/reset-password/confirm`, {
+      const response = await fetch(buildApiUrl('/auth/reset-password/confirm'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

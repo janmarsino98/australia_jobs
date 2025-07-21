@@ -8,7 +8,7 @@ export default function Component() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const resp = await httpClient.get("http://localhost:5000/auth/@me");
+        const resp = await httpClient.get("/auth/@me");
         setUser(resp.data);
       } catch (e) {
         console.log(e);

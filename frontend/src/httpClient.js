@@ -1,10 +1,13 @@
 import axios from "axios";
+import { config } from "./config.ts";
 
 // Create axios instance with default config
 const httpClient = axios.create({
+    baseURL: config.apiBaseUrl,
     withCredentials: true,
     xsrfCookieName: 'XSRF-TOKEN',
     xsrfHeaderName: 'X-XSRF-TOKEN',
+    timeout: 30000, // 30 second timeout
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json',
@@ -50,20 +53,61 @@ httpClient.interceptors.request.use(
 httpClient.interceptors.response.use(
     response => response,
     error => {
+        // Enhanced error handling with detailed logging
         if (error.response) {
+            const { status, data, config } = error.response;
+            
+            // Log error details for debugging (only in development)
+            if (import.meta.env.DEV) {
+                console.group(`API Error: ${status} ${config.method?.toUpperCase()} ${config.url}`);
+                console.error('Status:', status);
+                console.error('Data:', data);
+                console.error('Request Config:', config);
+                console.groupEnd();
+            }
+
             // Handle specific error cases
-            switch (error.response.status) {
+            switch (status) {
+                case 400:
+                    console.error('Bad Request - Check your request data');
+                    break;
+                case 401:
+                    console.error('Unauthorized - User authentication required');
+                    // Could redirect to login page here
+                    break;
                 case 403:
-                    // Forbidden - could be CSRF token mismatch
-                    console.error('Access forbidden. Possible CSRF token mismatch.');
+                    console.error('Forbidden - Access denied. Possible CSRF token mismatch.');
+                    break;
+                case 404:
+                    console.error('Not Found - The requested resource does not exist');
+                    break;
+                case 422:
+                    console.error('Validation Error - Check your input data');
+                    break;
+                case 429:
+                    console.error('Too Many Requests - Rate limit exceeded');
                     break;
                 case 500:
-                    console.error('Server error:', error.response.data);
+                    console.error('Internal Server Error - Something went wrong on the server');
+                    break;
+                case 502:
+                    console.error('Bad Gateway - Server is down or unreachable');
+                    break;
+                case 503:
+                    console.error('Service Unavailable - Server is temporarily unavailable');
                     break;
                 default:
-                    console.error('Request failed:', error.response.data);
+                    console.error(`HTTP Error ${status}:`, data?.message || 'Unknown error');
             }
+        } else if (error.request) {
+            // Network error
+            console.error('Network Error - No response received from server');
+            console.error('Request details:', error.request);
+        } else {
+            // Request setup error
+            console.error('Request Setup Error:', error.message);
         }
+        
         return Promise.reject(error);
     }
 );

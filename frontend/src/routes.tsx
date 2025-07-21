@@ -24,6 +24,8 @@ import SettingsPage from "./pages/SettingsPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
 import ResourcesPage from "./pages/ResourcesPage";
 import AdvicePage from "./pages/AdvicePage";
+import JobPostingPage from "./pages/JobPostingPage";
+import JobManagementPage from "./pages/JobManagementPage";
 import { Outlet } from "react-router-dom";
 
 
@@ -152,6 +154,22 @@ const routes = createBrowserRouter([
         element: <ResourcesPage />,
       },
       {
+        path: "/post-job",
+        element: (
+          <AuthGuard allowedRoles={["employer"]}>
+            <JobPostingPage />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: "/jobs/manage",
+        element: (
+          <AuthGuard allowedRoles={["employer"]}>
+            <JobManagementPage />
+          </AuthGuard>
+        ),
+      },
+      {
         path: "/employer",
         element: (
           <AuthGuard allowedRoles={["employer"]}>
@@ -165,7 +183,7 @@ const routes = createBrowserRouter([
           },
           {
             path: "jobs",
-            element: <JobsPage />,
+            element: <JobManagementPage />,
           },
           {
             path: "jobs/:id",

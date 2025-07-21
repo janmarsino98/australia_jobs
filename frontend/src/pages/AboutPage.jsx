@@ -103,13 +103,13 @@ export default function AboutPage() {
             © 2024 AusJobs. All rights reserved.
           </div>
           <div className="flex space-x-4">
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/privacy" className="text-sm hover:text-blue-300">
               Privacy
             </a>
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/terms" className="text-sm hover:text-blue-300">
               Terms
             </a>
-            <a href="#" className="text-sm hover:text-blue-300">
+            <a href="/cookies" className="text-sm hover:text-blue-300">
               Cookies
             </a>
           </div>

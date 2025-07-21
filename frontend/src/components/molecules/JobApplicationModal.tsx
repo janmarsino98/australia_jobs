@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildApiUrl } from "../../config";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
@@ -94,7 +95,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
   useState(() => {
     const checkExistingResume = async () => {
       try {
-        const response = await fetch("http://localhost:5000/resume/current", {
+        const response = await fetch(buildApiUrl('/resume/current'), {
           credentials: 'include',
         });
         if (response.ok) {
@@ -147,7 +148,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
       }
 
       // Submit application
-      const response = await fetch("http://localhost:5000/jobs/apply", {
+      const response = await fetch(buildApiUrl('/jobs/apply'), {
         method: 'POST',
         credentials: 'include',
         body: formData,

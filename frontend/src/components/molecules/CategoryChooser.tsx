@@ -18,7 +18,7 @@ const CategoryChooser = ({ onCategoryChange }: CategoryChooserProps): JSX.Elemen
     const fetchCategories = async () => {
       try {
         const response = await httpClient.get<JobType[]>(
-          "http://localhost:5000/jobtypes/get_all"
+          "/jobtypes/get_all"
         );
 
         const newCategories = response.data.map((item) => item.jobtype);
