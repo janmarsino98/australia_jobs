@@ -16,12 +16,13 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
-  // If authentication is disabled for testing, bypass all auth checks
-  if (config.disableAuthForTesting) {
-    return <>{children}</>;
-  }
-
   useEffect(() => {
+    // If authentication is disabled for testing, bypass all auth checks
+    if (config.disableAuthForTesting) {
+      setIsLoading(false);
+      setAuthChecked(true);
+      return;
+    }
     const checkAuth = async () => {
       try {
         console.log('🛡️ AuthGuard checking authentication...');
@@ -66,6 +67,11 @@ const AuthGuard = ({ children, allowedRoles = [] }: AuthGuardProps) => {
         <LoadingSpinner className="w-8 h-8" />
       </div>
     );
+  }
+
+  // If authentication is disabled for testing, bypass all auth checks
+  if (config.disableAuthForTesting) {
+    return <>{children}</>;
   }
 
   // If still not authenticated after checks, redirect to login

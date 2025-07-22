@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.jsx";
+import App from "./App";
 import "./index.css";
 
 // Register service worker only in production
@@ -17,7 +17,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 } else if ('serviceWorker' in navigator && import.meta.env.DEV) {
   // Unregister any existing service workers in development
   navigator.serviceWorker.getRegistrations().then(function(registrations) {
-    for(let registration of registrations) {
+    for(const registration of registrations) {
       registration.unregister();
     }
   });

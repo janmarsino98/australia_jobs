@@ -43,13 +43,6 @@ const ApplicationsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
   const [selectedApplication, setSelectedApplication] = useState<string | null>(null);
 
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
-
-  const stats = getApplicationStats();
-
   // Filter and search applications
   const filteredApplications = useMemo(() => {
     return applications.filter(app => {
@@ -63,6 +56,13 @@ const ApplicationsPage: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [applications, searchTerm, statusFilter]);
+
+  if (!user) {
+    navigate('/login');
+    return null;
+  }
+
+  const stats = getApplicationStats();
 
   const handleStatusChange = (applicationId: string, newStatus: JobApplication['status']) => {
     updateApplicationStatus(applicationId, newStatus);

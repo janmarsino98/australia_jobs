@@ -1,6 +1,13 @@
 import PropTypes from "prop-types";
 
-const MiniJobCard = ({ jobImg, jobTitle, jobType, jobSchedule }) => {
+interface MiniJobCardProps {
+  jobImg?: string;
+  jobTitle: string;
+  jobType: string;
+  jobSchedule: string;
+}
+
+const MiniJobCard = ({ jobImg, jobTitle, jobType, jobSchedule }: MiniJobCardProps) => {
   return (
     <div className="w-max flex flex-row gap-4 h-max">
       <div className="w-[45px] h-[45px] rounded-full flex items-center justify-center bg-green-900 border-4 border-stone-600">
@@ -20,7 +27,7 @@ MiniJobCard.propTypes = {
   jobImg: PropTypes.string,
   jobTitle: PropTypes.string.isRequired,
   jobType: PropTypes.string.isRequired,
-  jobShedule: PropTypes.string.isRequired,
+  jobSchedule: PropTypes.string.isRequired,
 };
 
 export default MiniJobCard;

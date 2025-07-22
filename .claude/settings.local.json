@@ -6,7 +6,9 @@
       "Bash(npm run dev:*)",
       "Bash(cat:*)",
       "Bash(npm run:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(npx vite build:*)"
     ],
     "deny": []
   }

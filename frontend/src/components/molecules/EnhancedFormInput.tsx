@@ -65,7 +65,7 @@ const EnhancedFormInput = forwardRef<HTMLInputElement, EnhancedFormInputProps>((
   };
 
   const getInputClassNames = () => {
-    let baseClasses = "w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none";
+    const baseClasses = "w-full px-4 py-3 border-2 rounded-lg transition-all duration-200 focus:outline-none";
     
     if (showError) {
       return `${baseClasses} border-red-300 bg-red-50/50 focus:border-red-400 focus:ring-2 focus:ring-red-100`;

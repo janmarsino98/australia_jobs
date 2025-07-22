@@ -30,6 +30,8 @@ import SavedJobsPage from "./pages/SavedJobsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
+import VlogPage from "./pages/VlogPage";
+import TechBlogPage from "./pages/TechBlogPage";
 import { Outlet } from "react-router-dom";
 
 
@@ -176,6 +178,14 @@ const routes = createBrowserRouter([
       {
         path: "/cookie-policy",
         element: <CookiePolicyPage />,
+      },
+      {
+        path: "/vlog",
+        element: <VlogPage />,
+      },
+      {
+        path: "/techblog",
+        element: <TechBlogPage />,
       },
       {
         path: "/post-job",

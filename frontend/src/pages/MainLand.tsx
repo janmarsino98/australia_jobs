@@ -18,7 +18,7 @@ export default function Component() {
     fetchUser();
   }, []);
 
-  let landingCards = [
+  const landingCards = [
     {
       title: "Job Seekers",
       text: "Discover how AusJobs can help you.",

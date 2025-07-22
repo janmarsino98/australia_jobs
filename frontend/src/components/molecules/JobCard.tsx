@@ -1,6 +1,14 @@
 import PropTypes from "prop-types";
 
-const JobCard = ({ title, minSalary, maxSalary, imgSrc, isLoading }) => {
+interface JobCardProps {
+  title: string;
+  minSalary: number;
+  maxSalary: number;
+  imgSrc: string;
+  isLoading?: boolean;
+}
+
+const JobCard = ({ title, minSalary, maxSalary, imgSrc, isLoading }: JobCardProps) => {
   if (isLoading) {
     return (
       <div className="flex flex-col my-[15px] animate-pulse">
