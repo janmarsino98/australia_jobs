@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { buildApiUrl } from "../../config";
 import { Button } from "../ui/button";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { Alert, AlertDescription } from "../ui/alert";
 import { LoadingSpinner } from "./LoadingSpinner";
-import FormInput from "./FormInput";
+import EnhancedFormInput from "./EnhancedFormInput";
 import { useZodForm } from "../../hooks/useZodForm";
 import { useToast } from "../ui/use-toast";
 import useJobApplicationStore from "../../stores/useJobApplicationStore";
@@ -17,7 +17,9 @@ import {
   FileText, 
   Trash2,
   Send,
-  AlertCircle 
+  AlertCircle,
+  CheckCircle,
+  Loader2
 } from "lucide-react";
 import * as z from "zod";
 
@@ -25,7 +27,11 @@ import * as z from "zod";
 const jobApplicationSchema = z.object({
   coverLetter: z.string()
     .min(50, "Cover letter must be at least 50 characters")
-    .max(2000, "Cover letter cannot exceed 2000 characters"),
+    .max(2000, "Cover letter cannot exceed 2000 characters")
+    .refine(
+      (val) => val.trim().length >= 50, 
+      "Cover letter must contain at least 50 meaningful characters"
+    ),
   resume: z.instanceof(File)
     .refine(file => file.size <= 5 * 1024 * 1024, 'Resume file size must be less than 5MB')
     .refine(
@@ -34,19 +40,34 @@ const jobApplicationSchema = z.object({
     )
     .optional(),
   phone: z.string()
-    .regex(/^\+?61\d{9}$/, "Please enter a valid Australian phone number")
+    .refine(
+      (val) => !val || /^\+?61\d{9}$/.test(val.replace(/\s/g, '')), 
+      "Please enter a valid Australian phone number (+61 format)"
+    )
     .optional(),
   linkedinUrl: z.string()
-    .url("Please enter a valid LinkedIn URL")
-    .optional()
-    .or(z.literal("")),
+    .refine(
+      (val) => !val || val === "" || (z.string().url().safeParse(val).success && val.includes('linkedin.com')),
+      "Please enter a valid LinkedIn profile URL"
+    )
+    .optional(),
   portfolioUrl: z.string()
-    .url("Please enter a valid portfolio URL")
-    .optional()
-    .or(z.literal("")),
+    .refine(
+      (val) => !val || val === "" || z.string().url().safeParse(val).success,
+      "Please enter a valid portfolio URL"
+    )
+    .optional(),
   availabilityDate: z.string()
+    .refine(
+      (val) => !val || new Date(val) >= new Date(),
+      "Availability date cannot be in the past"
+    )
     .optional(),
   salaryExpectation: z.string()
+    .refine(
+      (val) => !val || /^\$?[\d,]+(\.?\d{2})?(\s?-\s?\$?[\d,]+(\.?\d{2})?)?\s?(AUD|per year|annually)?$/i.test(val.trim()),
+      "Please enter a valid salary expectation (e.g., $80,000 or $70,000 - $90,000)"
+    )
     .optional()
 });
 
@@ -69,6 +90,8 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
   const [selectedResume, setSelectedResume] = useState<File | null>(null);
   const [hasExistingResume, setHasExistingResume] = useState(false);
   const [useExistingResume, setUseExistingResume] = useState(true);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -92,7 +115,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
   const coverLetter = watch("coverLetter");
 
   // Check for existing resume on component mount
-  useState(() => {
+  useEffect(() => {
     const checkExistingResume = async () => {
       try {
         const response = await fetch(buildApiUrl('/resume/current'), {
@@ -109,7 +132,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
     if (isOpen) {
       checkExistingResume();
     }
-  });
+  }, [isOpen]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -128,6 +151,15 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
 
   const onSubmit = async (data: any) => {
     try {
+      setSubmitStatus('submitting');
+      setSubmitError(null);
+      setError("root", { message: "" }); // Clear any previous errors
+
+      // Validation for resume requirement (if no existing resume and no uploaded resume)
+      if (!hasExistingResume && !selectedResume) {
+        throw new Error('Please upload a resume or ensure you have one in your profile');
+      }
+
       // Prepare form data for submission
       const formData = new FormData();
       formData.append('jobId', job.id);
@@ -160,6 +192,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
       }
 
       const applicationData = await response.json();
+      setSubmitStatus('success');
 
       // Add to local store for tracking
       addApplication({
@@ -167,23 +200,29 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
         company: job.firm,
         status: 'applied',
         location: job.location,
+        jobUrl: `/job/${job.id}`,
+        appliedDate: Date.now(),
+        lastUpdated: Date.now(),
       });
 
+      // Show success message and wait before closing
       toast({
         title: "Application Submitted!",
         description: `Your application for ${job.title} at ${job.firm} has been submitted successfully.`,
       });
 
-      onClose();
-      
-      // Navigate to applications tracker
-      navigate('/dashboard');
+      // Close modal after 2 seconds to allow user to see success state
+      setTimeout(() => {
+        onClose();
+        navigate('/dashboard?tab=applications');
+      }, 2000);
 
     } catch (error) {
       console.error('Application submission failed:', error);
-      setError("root", {
-        message: error instanceof Error ? error.message : "Failed to submit application. Please try again.",
-      });
+      setSubmitStatus('error');
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit application. Please try again.";
+      setSubmitError(errorMessage);
+      setError("root", { message: errorMessage });
     }
   };
 
@@ -237,13 +276,42 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
           </CardHeader>
 
           <CardContent className="p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {errors.root && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{errors.root.message}</AlertDescription>
-                </Alert>
-              )}
+            {submitStatus === 'success' ? (
+              <div className="text-center py-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", duration: 0.5 }}
+                >
+                  <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                </motion.div>
+                <h3 className="text-lg font-semibold text-main-text mb-2">
+                  Application Submitted Successfully!
+                </h3>
+                <p className="text-searchbar-text mb-4">
+                  Your application for {job.title} at {job.firm} has been submitted. 
+                  You'll be redirected to your dashboard shortly.
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-searchbar-text">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Redirecting...</span>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {errors.root && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errors.root.message}</AlertDescription>
+                  </Alert>
+                )}
+
+                {submitStatus === 'error' && submitError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{submitError}</AlertDescription>
+                  </Alert>
+                )}
 
               {/* Cover Letter */}
               <div className="space-y-2">
@@ -328,45 +396,65 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
 
               {/* Additional Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput
+                <EnhancedFormInput
                   inputType="tel"
                   label="Phone Number"
                   placeholder="+61 4XX XXX XXX"
                   error={errors.phone?.message}
+                  isLoading={submitStatus === 'submitting'}
+                  helpText="Include country code for Australian numbers"
+                  validationRules={["Valid Australian phone number (+61 format)"]}
+                  showValidation={!!errors.phone}
                   {...register("phone")}
                 />
                 
-                <FormInput
+                <EnhancedFormInput
                   inputType="url"
                   label="LinkedIn Profile"
                   placeholder="https://linkedin.com/in/yourprofile"
                   error={errors.linkedinUrl?.message}
+                  isLoading={submitStatus === 'submitting'}
+                  helpText="Your professional LinkedIn profile URL"
+                  validationRules={["Must be a valid LinkedIn profile URL"]}
+                  showValidation={!!errors.linkedinUrl}
                   {...register("linkedinUrl")}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput
+                <EnhancedFormInput
                   inputType="url"
                   label="Portfolio URL"
                   placeholder="https://yourportfolio.com"
                   error={errors.portfolioUrl?.message}
+                  isLoading={submitStatus === 'submitting'}
+                  helpText="Link to your work samples or portfolio"
+                  validationRules={["Must be a valid URL"]}
+                  showValidation={!!errors.portfolioUrl}
                   {...register("portfolioUrl")}
                 />
                 
-                <FormInput
+                <EnhancedFormInput
                   inputType="date"
                   label="Available Start Date"
                   error={errors.availabilityDate?.message}
+                  isLoading={submitStatus === 'submitting'}
+                  helpText="When can you start this position?"
+                  validationRules={["Date cannot be in the past"]}
+                  showValidation={!!errors.availabilityDate}
                   {...register("availabilityDate")}
                 />
               </div>
 
-              <FormInput
+              <EnhancedFormInput
                 inputType="text"
                 label="Salary Expectation"
                 placeholder="e.g., $80,000 - $100,000 AUD"
                 error={errors.salaryExpectation?.message}
+                isLoading={submitStatus === 'submitting'}
+                helpText="Include currency and time period (optional)"
+                validationRules={["Format: $80,000 or $70,000 - $90,000 AUD"]}
+                showValidation={!!errors.salaryExpectation}
                 {...register("salaryExpectation")}
               />
 
@@ -384,11 +472,11 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || submitStatus === 'submitting'}
                 >
-                  {isSubmitting ? (
+                  {submitStatus === 'submitting' ? (
                     <>
-                      <LoadingSpinner className="h-4 w-4 mr-2" />
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Submitting...
                     </>
                   ) : (
@@ -399,7 +487,8 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
                   )}
                 </Button>
               </div>
-            </form>
+              </form>
+            )}
           </CardContent>
         </Card>
       </motion.div>

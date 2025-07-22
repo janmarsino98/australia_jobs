@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import httpClient from '../httpClient';
+import { buildApiUrl } from '../config';
 
 export interface SavedJob {
   _id: string;
@@ -25,8 +27,10 @@ interface SavedJobsState {
   savedJobs: SavedJob[];
   searchQuery: string;
   filteredJobs: SavedJob[];
+  isLoading: boolean;
+  error: string | null;
   
-  // Actions
+  // Local Actions
   saveJob: (job: Omit<SavedJob, 'savedAt' | 'status'>) => void;
   removeJob: (jobId: string) => void;
   updateJobStatus: (jobId: string, status: SavedJob['status']) => void;
@@ -35,6 +39,13 @@ interface SavedJobsState {
   getJobById: (jobId: string) => SavedJob | undefined;
   clearAllSavedJobs: () => void;
   exportSavedJobs: () => string;
+  
+  // API Actions
+  fetchSavedJobs: () => Promise<void>;
+  syncSavedJobToBackend: (job: SavedJob) => Promise<void>;
+  removeSavedJobFromBackend: (jobId: string) => Promise<void>;
+  updateSavedJobInBackend: (jobId: string, updates: Partial<SavedJob>) => Promise<void>;
+  clearError: () => void;
 }
 
 const useSavedJobsStore = create<SavedJobsState>()(
@@ -43,6 +54,8 @@ const useSavedJobsStore = create<SavedJobsState>()(
       savedJobs: [],
       searchQuery: '',
       filteredJobs: [],
+      isLoading: false,
+      error: null,
 
       saveJob: (job) => {
         const savedJob: SavedJob = {
@@ -66,6 +79,9 @@ const useSavedJobsStore = create<SavedJobsState>()(
               ) : newSavedJobs
           };
         });
+        
+        // Sync to backend
+        get().syncSavedJobToBackend(savedJob).catch(console.error);
       },
 
       removeJob: (jobId) => {
@@ -81,6 +97,9 @@ const useSavedJobsStore = create<SavedJobsState>()(
               ) : newSavedJobs
           };
         });
+        
+        // Remove from backend
+        get().removeSavedJobFromBackend(jobId).catch(console.error);
       },
 
       updateJobStatus: (jobId, status) => {
@@ -92,6 +111,9 @@ const useSavedJobsStore = create<SavedJobsState>()(
             job._id === jobId ? { ...job, status } : job
           )
         }));
+        
+        // Update in backend
+        get().updateSavedJobInBackend(jobId, { status }).catch(console.error);
       },
 
       updateJobNotes: (jobId, notes) => {
@@ -103,6 +125,9 @@ const useSavedJobsStore = create<SavedJobsState>()(
             job._id === jobId ? { ...job, notes } : job
           )
         }));
+        
+        // Update in backend
+        get().updateSavedJobInBackend(jobId, { notes }).catch(console.error);
       },
 
       setSearchQuery: (query) => {
@@ -145,11 +170,81 @@ const useSavedJobsStore = create<SavedJobsState>()(
         }));
         
         return JSON.stringify(exportData, null, 2);
+      },
+      
+      // API methods
+      fetchSavedJobs: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await httpClient.get(buildApiUrl('/saved-jobs'));
+          const savedJobs = response.data.savedJobs || [];
+          set({ 
+            savedJobs, 
+            filteredJobs: savedJobs,
+            isLoading: false 
+          });
+        } catch (error: any) {
+          console.error('Failed to fetch saved jobs:', error);
+          set({ 
+            error: error.response?.data?.message || 'Failed to fetch saved jobs',
+            isLoading: false 
+          });
+        }
+      },
+      
+      syncSavedJobToBackend: async (job: SavedJob) => {
+        try {
+          await httpClient.post(buildApiUrl('/saved-jobs'), {
+            jobId: job._id,
+            jobData: {
+              title: job.title,
+              firm: job.firm,
+              location: job.location,
+              jobtype: job.jobtype,
+              remuneration_amount: job.remuneration_amount,
+              remuneration_period: job.remuneration_period,
+              description: job.description,
+              posted: job.posted,
+              slug: job.slug
+            },
+            notes: job.notes,
+            status: job.status
+          });
+        } catch (error: any) {
+          console.error('Failed to sync saved job:', error);
+          set({ error: error.response?.data?.message || 'Failed to save job' });
+        }
+      },
+      
+      removeSavedJobFromBackend: async (jobId: string) => {
+        try {
+          await httpClient.delete(buildApiUrl(`/saved-jobs/${jobId}`));
+        } catch (error: any) {
+          console.error('Failed to remove saved job from backend:', error);
+          set({ error: error.response?.data?.message || 'Failed to remove saved job' });
+        }
+      },
+      
+      updateSavedJobInBackend: async (jobId: string, updates: Partial<SavedJob>) => {
+        try {
+          await httpClient.put(buildApiUrl(`/saved-jobs/${jobId}`), updates);
+        } catch (error: any) {
+          console.error('Failed to update saved job:', error);
+          set({ error: error.response?.data?.message || 'Failed to update saved job' });
+        }
+      },
+      
+      clearError: () => {
+        set({ error: null });
       }
     }),
     {
       name: 'saved-jobs-store',
-      version: 1
+      version: 1,
+      partialize: (state) => ({ 
+        savedJobs: state.savedJobs,
+        searchQuery: state.searchQuery 
+      }),
     }
   )
 );

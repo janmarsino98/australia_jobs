@@ -45,6 +45,48 @@ export const config = {
             experience: '/users/profile/experience',
             education: '/users/profile/education',
         },
+        applications: {
+            list: '/applications',
+            create: '/applications',
+            update: '/applications/:id',
+            delete: '/applications/:id',
+        },
+        savedJobs: {
+            list: '/saved-jobs',
+            save: '/saved-jobs',
+            remove: '/saved-jobs/:id',
+            update: '/saved-jobs/:id',
+        },
+        userPreferences: {
+            get: '/user/preferences',
+            save: '/user/preferences',
+            update: '/user/preferences',
+        },
+        userExperience: {
+            list: '/user/experience',
+            create: '/user/experience',
+            update: '/user/experience/:id',
+            delete: '/user/experience/:id',
+        },
+        userEducation: {
+            list: '/user/education',
+            create: '/user/education',
+            update: '/user/education/:id',
+            delete: '/user/education/:id',
+            certifications: '/user/education/certifications',
+        },
+        analytics: {
+            events: '/analytics/events',
+            eventsBatch: '/analytics/events/batch',
+            metrics: '/analytics/metrics',
+            userAnalytics: '/analytics/users/me',
+        },
+        admin: {
+            users: '/admin/users',
+            jobs: '/admin/jobs',
+            stats: '/admin/stats',
+            export: '/admin/export',
+        },
         cities: {
             getAll: '/cities/get_all',
             getMain: '/cities/get_main',

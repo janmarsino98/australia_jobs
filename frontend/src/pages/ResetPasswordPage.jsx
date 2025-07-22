@@ -7,7 +7,7 @@ import { resetPasswordSchema, resetPasswordRequestSchema } from "../lib/validati
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter } from "../components/ui/card";
-import FormInput from "../components/molecules/FormInput";
+import EnhancedFormInput from "../components/molecules/EnhancedFormInput";
 import { LoadingSpinner } from "../components/molecules/LoadingSpinner";
 import { motion } from "framer-motion";
 import main_logo from "../imgs/logo.png";
@@ -145,13 +145,17 @@ const ResetPasswordPage = () => {
                   </Alert>
                 )}
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="email"
                   label="Email Address"
                   Icon={AiOutlineMail}
                   error={requestForm.formState.errors.email?.message}
                   className="bg-dark-white text-searchbar-text text-[16px]"
                   autoComplete="email"
+                  isLoading={requestForm.formState.isSubmitting}
+                  helpText="Enter the email address associated with your account"
+                  validationRules={["Valid email format required"]}
+                  showValidation={!!requestForm.formState.errors.email}
                   {...requestForm.register("email")}
                 />
 
@@ -178,29 +182,41 @@ const ResetPasswordPage = () => {
                   </Alert>
                 )}
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="text"
                   label="Reset Code"
                   error={resetForm.formState.errors.code?.message}
                   className="bg-dark-white text-searchbar-text text-[16px]"
+                  isLoading={resetForm.formState.isSubmitting}
+                  helpText="Enter the 6-digit code sent to your email"
+                  validationRules={["6-digit verification code"]}
+                  showValidation={!!resetForm.formState.errors.code}
                   {...resetForm.register("code")}
                 />
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="password"
                   label="New Password"
                   Icon={AiOutlineLock}
                   error={resetForm.formState.errors.newPassword?.message}
                   className="bg-dark-white text-searchbar-text text-[16px]"
+                  isLoading={resetForm.formState.isSubmitting}
+                  helpText="Create a strong password for your account"
+                  validationRules={["At least 8 characters", "Include uppercase and lowercase", "Include numbers and symbols"]}
+                  showValidation={!!resetForm.formState.errors.newPassword}
                   {...resetForm.register("newPassword")}
                 />
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="password"
                   label="Confirm Password"
                   Icon={AiOutlineLock}
                   error={resetForm.formState.errors.confirmPassword?.message}
                   className="bg-dark-white text-searchbar-text text-[16px]"
+                  isLoading={resetForm.formState.isSubmitting}
+                  helpText="Re-enter your new password to confirm"
+                  validationRules={["Must match new password above"]}
+                  showValidation={!!resetForm.formState.errors.confirmPassword}
                   {...resetForm.register("confirmPassword")}
                 />
 

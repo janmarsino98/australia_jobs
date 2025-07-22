@@ -1,7 +1,7 @@
 import { AiOutlineMail } from "react-icons/ai";
 import { MdOutlineLock } from "react-icons/md";
 import { useNavigate, Link, useLocation } from "react-router-dom";
-import FormInput from "../components/molecules/FormInput";
+import EnhancedFormInput from "../components/molecules/EnhancedFormInput";
 import { useZodForm } from "../hooks/useZodForm";
 import { loginFormSchema } from "../lib/validations/forms";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -125,20 +125,28 @@ const LoginPage = () => {
               )}
 
               <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                <FormInput
+                <EnhancedFormInput
                   inputType="email"
                   label="Email Address"
                   Icon={AiOutlineMail}
                   error={errors.email?.message}
                   autoComplete="email"
+                  isLoading={isSubmitting}
+                  helpText="Enter your registered email address"
+                  validationRules={["Valid email format required"]}
+                  showValidation={!!errors.email}
                   {...register("email")}
                 />
-                <FormInput
+                <EnhancedFormInput
                   inputType="password"
                   label="Password"
                   Icon={MdOutlineLock}
                   error={errors.password?.message}
                   autoComplete="current-password"
+                  isLoading={isSubmitting}
+                  helpText="Enter your account password"
+                  validationRules={["Password is required"]}
+                  showValidation={!!errors.password}
                   {...register("password")}
                 />
 

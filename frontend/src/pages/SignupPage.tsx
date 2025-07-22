@@ -1,7 +1,7 @@
 import { AiOutlineMail, AiOutlineUser } from "react-icons/ai";
 import { MdOutlineLock } from "react-icons/md";
 import { useNavigate, Link } from "react-router-dom";
-import FormInput from "../components/molecules/FormInput";
+import EnhancedFormInput from "../components/molecules/EnhancedFormInput";
 import { useZodForm } from "../hooks/useZodForm";
 import { signupFormSchema } from "../lib/validations/forms";
 import { Alert, AlertDescription } from "../components/ui/alert";
@@ -127,39 +127,55 @@ const SignupPage = () => {
               )}
 
               <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                <FormInput
+                <EnhancedFormInput
                   inputType="text"
                   label="Full Name"
                   Icon={AiOutlineUser}
                   error={errors.name?.message}
                   autoComplete="name"
+                  isLoading={isSubmitting}
+                  helpText="Enter your full name as it appears on official documents"
+                  validationRules={["Minimum 2 characters", "Letters and spaces only"]}
+                  showValidation={!!errors.name}
                   {...register("name")}
                 />
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="email"
                   label="Email Address"
                   Icon={AiOutlineMail}
                   error={errors.email?.message}
                   autoComplete="email"
+                  isLoading={isSubmitting}
+                  helpText="We'll use this email for account verification and updates"
+                  validationRules={["Valid email format required", "Must be accessible for verification"]}
+                  showValidation={!!errors.email}
                   {...register("email")}
                 />
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="password"
                   label="Password"
                   Icon={MdOutlineLock}
                   error={errors.password?.message}
                   autoComplete="new-password"
+                  isLoading={isSubmitting}
+                  helpText="Choose a strong password for account security"
+                  validationRules={["At least 8 characters", "Include uppercase and lowercase", "Include numbers and symbols"]}
+                  showValidation={!!errors.password}
                   {...register("password")}
                 />
 
-                <FormInput
+                <EnhancedFormInput
                   inputType="password"
                   label="Confirm Password"
                   Icon={MdOutlineLock}
                   error={errors.confirmPassword?.message}
                   autoComplete="new-password"
+                  isLoading={isSubmitting}
+                  helpText="Re-enter your password to confirm"
+                  validationRules={["Must match password above"]}
+                  showValidation={!!errors.confirmPassword}
                   {...register("confirmPassword")}
                 />
 
