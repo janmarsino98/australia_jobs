@@ -21,6 +21,22 @@ from email_service import (
     verify_email_verification_token, send_email_verification
 )
 from models import User, UserProfile, OAuthProvider, OAuthAccount
+from jwt_utils import create_token_pair, refresh_access_token, revoke_refresh_token, revoke_all_user_tokens, JWTError
+from auth_decorators import jwt_required
+from oauth_utils import (
+    log_oauth_error, handle_oauth_token_revocation, check_oauth_rate_limit,
+    handle_google_oauth_error, handle_linkedin_oauth_error, validate_oauth_state,
+    retry_oauth_request, OAuthError, OAuthRateLimitError
+)
+from two_factor_auth import (
+    enable_two_factor, verify_and_activate_two_factor, verify_two_factor_code,
+    disable_two_factor, get_two_factor_status, regenerate_backup_codes,
+    TwoFactorError
+)
+from account_lockout import (
+    check_and_handle_failed_login, handle_successful_login, is_account_locked,
+    unlock_account, get_lockout_info, AccountLockoutError
+)
 
 auth_bp = Blueprint("auth_bp", __name__)
 users_db = mongo.db.users
@@ -100,16 +116,63 @@ def login_user():
         if not email or not password:
             return standardize_error_response("Email and password are required", 400)
         
+        # Check if account is locked
+        is_locked, locked_until = is_account_locked(email, 'email')
+        if is_locked:
+            minutes_remaining = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+            return standardize_error_response(
+                f"Account is temporarily locked due to too many failed login attempts. "
+                f"Please try again in {minutes_remaining} minutes.", 
+                423  # HTTP 423 Locked
+            )
+        
         user = users_db.find_one({"email": email})
         
         if not user:
+            # Record failed attempt for non-existent user
+            check_and_handle_failed_login(email, 'email', 
+                                        request.environ.get('REMOTE_ADDR'),
+                                        request.headers.get('User-Agent'))
             return standardize_error_response("Invalid email or password", 401)
         
         if not bcrypt.check_password_hash(user["password"], password):
+            # Record failed attempt and check for lockout
+            is_now_locked, locked_until = check_and_handle_failed_login(
+                email, 'email',
+                request.environ.get('REMOTE_ADDR'),
+                request.headers.get('User-Agent')
+            )
+            
+            if is_now_locked:
+                minutes_remaining = int((locked_until - datetime.utcnow()).total_seconds() / 60)
+                return standardize_error_response(
+                    f"Too many failed login attempts. Account locked for {minutes_remaining} minutes.",
+                    423  # HTTP 423 Locked
+                )
+            
             return standardize_error_response("Invalid email or password", 401)
         
-        # Create session
+        # Password is correct, clear any failed attempts
+        handle_successful_login(email, 'email')
+        
+        # Check if user has 2FA enabled
+        if user.get('two_factor_enabled', False):
+            # Store user ID in session for 2FA verification
+            session["pending_2fa_user_id"] = str(user["_id"])
+            
+            return jsonify({
+                "two_factor_required": True,
+                "message": "Please enter your two-factor authentication code"
+            }), 200
+        
+        # Create session for backward compatibility
         session["user_id"] = str(user["_id"])
+        
+        # Update last login timestamp
+        users_db.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"last_login": datetime.utcnow()}}
+        )
         
         # Get updated user data for consistent response
         updated_user = users_db.find_one({"_id": user["_id"]})
@@ -130,11 +193,32 @@ def login_user():
             }
         }
         
-        return jsonify({
-            "user": user_response,
-            "token": "session_token",  # Placeholder for token-based auth
-            "refreshToken": "refresh_token"  # Placeholder for refresh token
-        }), 200
+        # Create JWT token pair
+        try:
+            token_data = create_token_pair(
+                str(user["_id"]),
+                {
+                    "email": updated_user["email"],
+                    "role": updated_user.get("role", "job_seeker"),
+                    "email_verified": updated_user.get("email_verified", False)
+                }
+            )
+            
+            return jsonify({
+                "user": user_response,
+                "access_token": token_data["access_token"],
+                "refresh_token": token_data["refresh_token"],
+                "token_type": token_data["token_type"],
+                "expires_in": token_data["access_token_expires_in"]
+            }), 200
+        except JWTError as e:
+            print(f"JWT token creation error: {e}")
+            # Fall back to session-only response
+            return jsonify({
+                "user": user_response,
+                "token": "session_token",  # Fallback for compatibility
+                "refreshToken": "refresh_token"  # Fallback for compatibility
+            }), 200
         
     except Exception as e:
         print(f"Error during login: {e}")
@@ -208,21 +292,44 @@ def register_user():
         # Create session for the new user
         session["user_id"] = user_id
         
-        # Return user data (similar to login response)
-        return standardize_success_response({
-            "user": {
-                "id": user_id,
-                "email": email,
-                "name": name,
-                "role": role,
-                "email_verified": False,
-                "profile": {},  # Empty profile for new users
-                "oauth_accounts": {}
-            },
-            "token": "session_token",  # Placeholder for token-based auth
-            "refreshToken": "refresh_token",  # Placeholder for refresh token
-            "message": "Account created successfully. Please check your email to verify your account."
-        }, "Account created successfully", 201)
+        # Create JWT token pair
+        user_response = {
+            "id": user_id,
+            "email": email,
+            "name": name,
+            "role": role,
+            "email_verified": False,
+            "profile": {},  # Empty profile for new users
+            "oauth_accounts": {}
+        }
+        
+        try:
+            token_data = create_token_pair(
+                user_id,
+                {
+                    "email": email,
+                    "role": role,
+                    "email_verified": False
+                }
+            )
+            
+            return standardize_success_response({
+                "user": user_response,
+                "access_token": token_data["access_token"],
+                "refresh_token": token_data["refresh_token"],
+                "token_type": token_data["token_type"],
+                "expires_in": token_data["access_token_expires_in"],
+                "message": "Account created successfully. Please check your email to verify your account."
+            }, "Account created successfully", 201)
+        except JWTError as e:
+            print(f"JWT token creation error during registration: {e}")
+            # Fall back to session-only response
+            return standardize_success_response({
+                "user": user_response,
+                "token": "session_token",  # Fallback for compatibility
+                "refreshToken": "refresh_token",  # Fallback for compatibility
+                "message": "Account created successfully. Please check your email to verify your account."
+            }, "Account created successfully", 201)
         
     except Exception as e:
         print(f"Error creating user: {e}")
@@ -455,6 +562,19 @@ def google_login():
     """Initiate Google OAuth login"""
     try:
         print("\n=== Starting Google Login Process ===")
+        
+        # Check rate limiting
+        is_rate_limited, retry_after = check_oauth_rate_limit('google')
+        if is_rate_limited:
+            log_oauth_error('google', 'rate_limit_hit', {
+                'retry_after': retry_after,
+                'endpoint': 'google_login'
+            })
+            return standardize_error_response(
+                f"Too many Google sign-in attempts. Please try again in {retry_after} seconds", 
+                429
+            )
+        
         print("Creating redirect URI...")
         redirect_uri = url_for('auth_bp.google_callback', _external=True)
         print(f"Redirect URI created: {redirect_uri}")
@@ -462,16 +582,37 @@ def google_login():
         print("Checking if google client exists in oauth...")
         if not hasattr(oauth, 'google'):
             print("ERROR: Google client not found in oauth object!")
+            log_oauth_error('google', 'client_not_initialized', {
+                'error': 'Google OAuth client not found in oauth object'
+            })
             return standardize_error_response("OAuth not properly initialized", 500)
         
+        # Generate state for CSRF protection
+        import secrets
+        state = secrets.token_urlsafe(32)
+        session['google_oauth_state'] = state
+        
         print("Attempting to create authorization redirect...")
-        return oauth.google.authorize_redirect(redirect_uri)
+        return oauth.google.authorize_redirect(redirect_uri, state=state)
+        
+    except OAuthRateLimitError as e:
+        log_oauth_error('google', 'rate_limit_exceeded', {
+            'retry_after': e.retry_after,
+            'endpoint': 'google_login'
+        })
+        return standardize_error_response(e.message, 429)
     except Exception as e:
         print(f"\nError initiating Google login:")
         print(f"Error type: {type(e).__name__}")
         print(f"Error message: {str(e)}")
         print(f"Full error details: {repr(e)}")
-        return standardize_error_response("OAuth initialization failed", 500)
+        
+        log_oauth_error('google', 'login_initiation_failed', {
+            'error_type': type(e).__name__,
+            'error_message': str(e)
+        })
+        
+        return standardize_error_response("Google sign-in is temporarily unavailable", 500)
 
 
 @auth_bp.route("/google/callback", methods=["GET"])
@@ -479,12 +620,51 @@ def google_callback():
     """Handle Google OAuth callback"""
     try:
         print("\n=== Google OAuth Callback Started ===")
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        
+        # Check for errors in callback parameters
+        error = request.args.get('error')
+        if error:
+            error_description = request.args.get('error_description', '')
+            error_details = {
+                'error': error,
+                'error_description': error_description
+            }
+            
+            log_oauth_error('google', 'callback_error', error_details)
+            error_response = handle_google_oauth_error(error_details)
+            
+            print(f"OAuth error in callback: {error} - {error_description}")
+            return redirect(f"{frontend_url}/oauth/callback?error={error_response['redirect_error']}")
+        
+        # Verify state parameter
+        received_state = request.args.get('state')
+        expected_state = session.pop('google_oauth_state', None)
+        
+        if not validate_oauth_state(expected_state, received_state, 'google'):
+            print("State validation failed - potential CSRF attack")
+            return redirect(f"{frontend_url}/oauth/callback?error=invalid_state")
+        
         print("Attempting to get authorization token...")
-        token = oauth.google.authorize_access_token()
+        
+        def get_token():
+            return oauth.google.authorize_access_token()
+        
+        # Retry token request with backoff
+        try:
+            token = retry_oauth_request(get_token, max_retries=2, backoff_factor=1.0)
+        except Exception as token_error:
+            log_oauth_error('google', 'token_request_failed', {
+                'error_type': type(token_error).__name__,
+                'error_message': str(token_error)
+            })
+            print(f"Token request failed after retries: {token_error}")
+            return redirect(f"{frontend_url}/oauth/callback?error=token_request_failed")
         
         if not token:
+            log_oauth_error('google', 'no_token_received', {})
             print("No token received from Google!")
-            return standardize_error_response("Authorization failed", 400)
+            return redirect(f"{frontend_url}/oauth/callback?error=authorization_failed")
         
         print("Token received successfully")
         print(f"Token type: {type(token)}")
@@ -495,8 +675,9 @@ def google_callback():
         user_info = token.get('userinfo')
         
         if not user_info:
+            log_oauth_error('google', 'no_user_info', {'token_keys': list(token.keys())})
             print("No user info in token!")
-            return standardize_error_response("Failed to get user information", 400)
+            return redirect(f"{frontend_url}/oauth/callback?error=user_info_failed")
         
         print(f"User info received: {user_info.keys()}")
         
@@ -506,17 +687,40 @@ def google_callback():
         
         print(f"Extracted info - Email: {email}, Name: {name}, Provider ID: {provider_id[:5]}..." if provider_id else "None")
         
-        if not email or not provider_id:
-            print("Missing required user information!")
-            return standardize_error_response("Incomplete user information from Google", 400)
+        if not provider_id:
+            log_oauth_error('google', 'missing_provider_id', user_info)
+            print("Missing provider ID from Google!")
+            return redirect(f"{frontend_url}/oauth/callback?error=incomplete_user_info")
+        
+        if not email:
+            log_oauth_error('google', 'missing_email', {
+                'has_email_permission': 'email' in token.get('scope', ''),
+                'user_info_keys': list(user_info.keys())
+            })
+            print("No email permission granted by user")
+            # Continue without email - some users might not grant email permission
         
         # Find or create user
         print("\nAttempting to find or create user...")
-        user = find_or_create_oauth_user(email, name, 'google', provider_id, user_info)
+        try:
+            user = find_or_create_oauth_user(email, name, 'google', provider_id, user_info)
+        except Exception as user_error:
+            log_oauth_error('google', 'user_creation_failed', {
+                'error_type': type(user_error).__name__,
+                'error_message': str(user_error),
+                'email': email,
+                'provider_id': provider_id[:10] if provider_id else None
+            })
+            print(f"User creation failed: {user_error}")
+            return redirect(f"{frontend_url}/oauth/callback?error=user_creation_failed")
         
         if not user:
-            print("Failed to find or create user!")
-            return standardize_error_response("Failed to create user account", 500)
+            log_oauth_error('google', 'user_creation_returned_none', {
+                'email': email,
+                'provider_id': provider_id[:10] if provider_id else None
+            })
+            print("User creation returned None!")
+            return redirect(f"{frontend_url}/oauth/callback?error=user_creation_failed")
         
         print(f"User processed successfully - ID: {user['_id']}")
         
@@ -524,18 +728,43 @@ def google_callback():
         session["user_id"] = str(user["_id"])
         print("Session created")
         
+        # Log successful authentication
+        log_oauth_error('google', 'authentication_success', {
+            'user_id': str(user['_id']),
+            'has_email': bool(email)
+        })
+        
         # Redirect to frontend with success
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
         print(f"Redirecting to frontend: {frontend_url}/oauth/callback?success=true")
         return redirect(f"{frontend_url}/oauth/callback?success=true")
         
+    except requests.exceptions.RequestException as e:
+        log_oauth_error('google', 'network_error', {
+            'error_type': type(e).__name__,
+            'error_message': str(e)
+        })
+        print(f"Network error in Google callback: {e}")
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        return redirect(f"{frontend_url}/oauth/callback?error=network_error")
+    except OAuthError as e:
+        log_oauth_error('google', 'oauth_error', {
+            'error_code': e.error_code,
+            'message': e.message
+        })
+        print(f"OAuth error in Google callback: {e.message}")
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        return redirect(f"{frontend_url}/oauth/callback?error={e.error_code or 'oauth_error'}")
     except Exception as e:
-        print("\nError in Google callback:")
+        log_oauth_error('google', 'unexpected_error', {
+            'error_type': type(e).__name__,
+            'error_message': str(e)
+        })
+        print("\nUnexpected error in Google callback:")
         print(f"Error type: {type(e).__name__}")
         print(f"Error message: {str(e)}")
         print(f"Full error details: {repr(e)}")
         frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
-        return redirect(f"{frontend_url}/oauth/callback?error=oauth_failed")
+        return redirect(f"{frontend_url}/oauth/callback?error=unexpected_error")
 
 
 @auth_bp.route("/google/verify", methods=["POST"])
@@ -1158,3 +1387,455 @@ def image_proxy():
     except Exception as e:
         print(f"Unexpected error in image proxy: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+@auth_bp.route("/refresh-token", methods=["POST"])
+@validate_json_request
+def refresh_token():
+    """Refresh access token using valid refresh token"""
+    try:
+        data = request.get_json()
+        refresh_token = data.get("refresh_token", "").strip()
+        
+        if not refresh_token:
+            return standardize_error_response("Refresh token is required", 400)
+        
+        # Refresh the access token
+        try:
+            token_response = refresh_access_token(refresh_token)
+            
+            return standardize_success_response({
+                "access_token": token_response["access_token"],
+                "user": token_response["user"],
+                "token_type": "Bearer",
+                "expires_in": 900  # 15 minutes in seconds
+            }, "Token refreshed successfully", 200)
+            
+        except JWTError as e:
+            return standardize_error_response(f"Token refresh failed: {str(e)}", 401)
+        
+    except Exception as e:
+        print(f"Error refreshing token: {e}")
+        return standardize_error_response("Failed to refresh token", 500)
+
+
+@auth_bp.route("/revoke-token", methods=["POST"])
+@validate_json_request
+@jwt_required()
+def revoke_token():
+    """Revoke a specific refresh token"""
+    try:
+        data = request.get_json()
+        refresh_token = data.get("refresh_token", "").strip()
+        
+        if not refresh_token:
+            return standardize_error_response("Refresh token is required", 400)
+        
+        # Revoke the token
+        success = revoke_refresh_token(refresh_token)
+        
+        if success:
+            return standardize_success_response({
+                "message": "Token revoked successfully"
+            }, status_code=200)
+        else:
+            return standardize_error_response("Failed to revoke token", 400)
+        
+    except Exception as e:
+        print(f"Error revoking token: {e}")
+        return standardize_error_response("Failed to revoke token", 500)
+
+
+@auth_bp.route("/revoke-all-tokens", methods=["POST"])
+@jwt_required()
+def revoke_all_tokens():
+    """Revoke all refresh tokens for current user"""
+    try:
+        from flask import g
+        user_id = g.current_user_id
+        
+        # Revoke all tokens for this user
+        revoked_count = revoke_all_user_tokens(user_id)
+        
+        # Also clear session for good measure
+        session.clear()
+        
+        return standardize_success_response({
+            "message": f"All tokens revoked successfully ({revoked_count} tokens)",
+            "revoked_count": revoked_count
+        }, status_code=200)
+        
+    except Exception as e:
+        print(f"Error revoking all tokens: {e}")
+        return standardize_error_response("Failed to revoke all tokens", 500)
+
+
+@auth_bp.route("/token-info", methods=["GET"])
+@jwt_required()
+def token_info():
+    """Get information about current user's active tokens"""
+    try:
+        from flask import g
+        from jwt_utils import get_user_active_tokens
+        
+        user_id = g.current_user_id
+        active_tokens = get_user_active_tokens(user_id)
+        
+        # Format token info (without exposing actual tokens)
+        token_info = []
+        for token in active_tokens:
+            token_info.append({
+                "created_at": token["created_at"].isoformat(),
+                "last_used": token["last_used"].isoformat(),
+                "expires_at": token["expires_at"].isoformat()
+            })
+        
+        return standardize_success_response({
+            "active_tokens": len(active_tokens),
+            "tokens": token_info
+        }, status_code=200)
+        
+    except Exception as e:
+        print(f"Error getting token info: {e}")
+        return standardize_error_response("Failed to get token information", 500)
+
+
+@auth_bp.route("/logout-all-devices", methods=["POST"])
+@jwt_required()
+def logout_all_devices():
+    """Logout user from all devices by revoking all tokens"""
+    try:
+        from flask import g
+        user_id = g.current_user_id
+        
+        # Revoke all refresh tokens
+        revoked_count = revoke_all_user_tokens(user_id)
+        
+        # Clear current session
+        session.clear()
+        
+        return standardize_success_response({
+            "message": "Successfully logged out from all devices",
+            "revoked_tokens": revoked_count
+        }, status_code=200)
+        
+    except Exception as e:
+        print(f"Error logging out all devices: {e}")
+        return standardize_error_response("Failed to logout from all devices", 500)
+
+
+@auth_bp.route("/2fa/setup", methods=["POST"])
+@jwt_required()
+def setup_two_factor():
+    """Setup two-factor authentication for current user"""
+    try:
+        from flask import g
+        user_id = g.current_user_id
+        
+        # Check if 2FA is already enabled
+        user = users_db.find_one({'_id': ObjectId(user_id)})
+        if user and user.get('two_factor_enabled'):
+            return standardize_error_response("Two-factor authentication is already enabled", 400)
+        
+        # Generate 2FA setup data
+        setup_data = enable_two_factor(user_id)
+        
+        return standardize_success_response({
+            "qr_code": setup_data["qr_code"],
+            "manual_entry_key": setup_data["manual_entry_key"],
+            "backup_codes": setup_data["backup_codes"],
+            "message": "Scan QR code with authenticator app and verify with a code to enable 2FA"
+        }, "2FA setup initiated", 200)
+        
+    except TwoFactorError as e:
+        return standardize_error_response(str(e), 400)
+    except Exception as e:
+        print(f"Error setting up 2FA: {e}")
+        return standardize_error_response("Failed to setup two-factor authentication", 500)
+
+
+@auth_bp.route("/2fa/verify-setup", methods=["POST"])
+@validate_json_request
+@jwt_required()
+def verify_two_factor_setup():
+    """Verify and activate two-factor authentication"""
+    try:
+        from flask import g
+        data = request.get_json()
+        user_id = g.current_user_id
+        
+        totp_code = data.get("code", "").strip()
+        if not totp_code:
+            return standardize_error_response("Verification code is required", 400)
+        
+        if len(totp_code) != 6 or not totp_code.isdigit():
+            return standardize_error_response("Invalid verification code format", 400)
+        
+        # Verify and activate 2FA
+        success = verify_and_activate_two_factor(user_id, totp_code)
+        
+        if success:
+            return standardize_success_response({
+                "message": "Two-factor authentication has been enabled successfully"
+            }, "2FA activated", 200)
+        else:
+            return standardize_error_response("Invalid verification code", 400)
+        
+    except TwoFactorError as e:
+        return standardize_error_response(str(e), 400)
+    except Exception as e:
+        print(f"Error verifying 2FA setup: {e}")
+        return standardize_error_response("Failed to verify 2FA setup", 500)
+
+
+@auth_bp.route("/2fa/verify", methods=["POST"])
+@validate_json_request
+def verify_two_factor_login():
+    """Verify 2FA code during login process"""
+    try:
+        data = request.get_json()
+        
+        # Get user_id from session (should be set during initial login)
+        user_id = session.get("pending_2fa_user_id")
+        if not user_id:
+            return standardize_error_response("2FA verification session not found", 400)
+        
+        code = data.get("code", "").strip()
+        is_backup_code = data.get("is_backup_code", False)
+        
+        if not code:
+            return standardize_error_response("Verification code is required", 400)
+        
+        # Verify the code
+        success = verify_two_factor_code(user_id, code, is_backup_code)
+        
+        if success:
+            # Clear pending 2FA session
+            session.pop("pending_2fa_user_id", None)
+            
+            # Create full session
+            session["user_id"] = user_id
+            
+            # Get user data for response
+            user = users_db.find_one({'_id': ObjectId(user_id)})
+            
+            user_response = {
+                "id": str(user["_id"]),
+                "email": user["email"],
+                "name": user.get("name", ""),
+                "role": user.get("role", "job_seeker"),
+                "email_verified": user.get("email_verified", False),
+                "two_factor_enabled": True
+            }
+            
+            # Create JWT token pair
+            try:
+                token_data = create_token_pair(
+                    user_id,
+                    {
+                        "email": user["email"],
+                        "role": user.get("role", "job_seeker"),
+                        "email_verified": user.get("email_verified", False)
+                    }
+                )
+                
+                return standardize_success_response({
+                    "user": user_response,
+                    "access_token": token_data["access_token"],
+                    "refresh_token": token_data["refresh_token"],
+                    "token_type": token_data["token_type"],
+                    "expires_in": token_data["access_token_expires_in"]
+                }, "2FA verification successful", 200)
+            except JWTError:
+                # Fall back to session-only response
+                return standardize_success_response({
+                    "user": user_response
+                }, "2FA verification successful", 200)
+        else:
+            return standardize_error_response("Invalid verification code", 400)
+        
+    except TwoFactorError as e:
+        return standardize_error_response(str(e), 400)
+    except Exception as e:
+        print(f"Error verifying 2FA login: {e}")
+        return standardize_error_response("Failed to verify 2FA code", 500)
+
+
+@auth_bp.route("/2fa/status", methods=["GET"])
+@jwt_required()
+def get_two_factor_auth_status():
+    """Get 2FA status for current user"""
+    try:
+        from flask import g
+        user_id = g.current_user_id
+        
+        status = get_two_factor_status(user_id)
+        
+        return standardize_success_response(status, status_code=200)
+        
+    except Exception as e:
+        print(f"Error getting 2FA status: {e}")
+        return standardize_error_response("Failed to get 2FA status", 500)
+
+
+@auth_bp.route("/2fa/disable", methods=["POST"])
+@validate_json_request
+@jwt_required()
+def disable_two_factor_auth():
+    """Disable two-factor authentication"""
+    try:
+        from flask import g
+        data = request.get_json()
+        user_id = g.current_user_id
+        
+        # Require password confirmation for security
+        password = data.get("password", "")
+        if not password:
+            return standardize_error_response("Password is required to disable 2FA", 400)
+        
+        # Verify password
+        user = users_db.find_one({'_id': ObjectId(user_id)})
+        if not user or not bcrypt.check_password_hash(user["password"], password):
+            return standardize_error_response("Invalid password", 401)
+        
+        # Disable 2FA
+        success = disable_two_factor(user_id)
+        
+        if success:
+            return standardize_success_response({
+                "message": "Two-factor authentication has been disabled"
+            }, "2FA disabled", 200)
+        else:
+            return standardize_error_response("Failed to disable 2FA", 500)
+        
+    except Exception as e:
+        print(f"Error disabling 2FA: {e}")
+        return standardize_error_response("Failed to disable two-factor authentication", 500)
+
+
+@auth_bp.route("/2fa/regenerate-backup-codes", methods=["POST"])
+@jwt_required()
+def regenerate_two_factor_backup_codes():
+    """Regenerate backup codes for 2FA"""
+    try:
+        from flask import g
+        user_id = g.current_user_id
+        
+        # Generate new backup codes
+        backup_codes = regenerate_backup_codes(user_id)
+        
+        return standardize_success_response({
+            "backup_codes": backup_codes,
+            "message": "New backup codes generated. Please save them securely"
+        }, "Backup codes regenerated", 200)
+        
+    except TwoFactorError as e:
+        return standardize_error_response(str(e), 400)
+    except Exception as e:
+        print(f"Error regenerating backup codes: {e}")
+        return standardize_error_response("Failed to regenerate backup codes", 500)
+
+
+@auth_bp.route("/account-lockout/status", methods=["GET"])
+@jwt_required()
+def get_account_lockout_status():
+    """Get account lockout status for current user"""
+    try:
+        from flask import g
+        user = g.current_user
+        email = user.get('email')
+        
+        if not email:
+            return standardize_error_response("User email not available", 400)
+        
+        lockout_info = get_lockout_info(email, 'email')
+        
+        return standardize_success_response(lockout_info, status_code=200)
+        
+    except Exception as e:
+        print(f"Error getting lockout status: {e}")
+        return standardize_error_response("Failed to get account lockout status", 500)
+
+
+@auth_bp.route("/admin/unlock-account", methods=["POST"])
+@validate_json_request
+@jwt_required()
+def admin_unlock_account():
+    """Unlock a user account (admin only)"""
+    try:
+        from flask import g
+        from auth_decorators import has_role
+        
+        # Check admin role
+        if not has_role('admin'):
+            return standardize_error_response("Admin access required", 403)
+        
+        data = request.get_json()
+        email = data.get("email", "").strip().lower()
+        reason = data.get("reason", "Manual unlock by admin")
+        
+        if not email:
+            return standardize_error_response("Email is required", 400)
+        
+        # Unlock the account
+        success = unlock_account(email, 'email', reason)
+        
+        if success:
+            return standardize_success_response({
+                "message": f"Account {email} has been unlocked",
+                "unlocked_email": email
+            }, "Account unlocked", 200)
+        else:
+            return standardize_error_response("Account was not locked or unlock failed", 400)
+        
+    except Exception as e:
+        print(f"Error unlocking account: {e}")
+        return standardize_error_response("Failed to unlock account", 500)
+
+
+@auth_bp.route("/admin/lockout-info/<email>", methods=["GET"])
+@jwt_required()
+def admin_get_lockout_info(email):
+    """Get detailed lockout information for a user (admin only)"""
+    try:
+        from flask import g
+        from auth_decorators import has_role
+        
+        # Check admin role
+        if not has_role('admin'):
+            return standardize_error_response("Admin access required", 403)
+        
+        email = email.strip().lower()
+        lockout_info = get_lockout_info(email, 'email')
+        
+        return standardize_success_response({
+            "email": email,
+            "lockout_info": lockout_info
+        }, status_code=200)
+        
+    except Exception as e:
+        print(f"Error getting admin lockout info: {e}")
+        return standardize_error_response("Failed to get lockout information", 500)
+
+
+@auth_bp.route("/admin/lockout-stats", methods=["GET"])
+@jwt_required()
+def admin_get_lockout_stats():
+    """Get lockout statistics (admin only)"""
+    try:
+        from flask import g
+        from auth_decorators import has_role
+        from account_lockout import get_lockout_stats
+        
+        # Check admin role
+        if not has_role('admin'):
+            return standardize_error_response("Admin access required", 403)
+        
+        days = int(request.args.get('days', 7))
+        stats = get_lockout_stats(days)
+        
+        return standardize_success_response(stats, status_code=200)
+        
+    except Exception as e:
+        print(f"Error getting lockout stats: {e}")
+        return standardize_error_response("Failed to get lockout statistics", 500)

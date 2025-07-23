@@ -7,26 +7,26 @@ This document outlines the remaining tasks needed to complete the AusJobs backen
 **Priority**: High
 
 ### Subtasks:
-- [ ] Implement JWT token refresh mechanism for secure session management
-- [ ] Add password reset functionality via email verification
-- [ ] Enhance OAuth error handling for edge cases (revoked permissions, expired tokens)
-- [ ] Add two-factor authentication (2FA) support for premium accounts
-- [ ] Implement proper role-based access control (RBAC) middleware
-- [ ] Add account lockout mechanism after multiple failed login attempts
-- [ ] Create admin dashboard authentication with elevated permissions
+- [x] Implement JWT token refresh mechanism for secure session management ✅
+- [x] Add password reset functionality via email verification ✅
+- [x] Enhance OAuth error handling for edge cases (revoked permissions, expired tokens) ✅
+- [x] Add two-factor authentication (2FA) support for premium accounts ✅
+- [x] Implement proper role-based access control (RBAC) middleware ✅
+- [x] Add account lockout mechanism after multiple failed login attempts ✅
+- [x] Create admin dashboard authentication with elevated permissions ✅
 
 ## 2. Resume Analysis & AI Features
 **Status**: Incomplete (Review endpoint stub exists)
 **Priority**: High
 
 ### Subtasks:
-- [ ] Complete resume parsing and text extraction from PDF files
-- [ ] Implement AI-powered resume analysis using GPT/Claude API integration
-- [ ] Add ATS (Applicant Tracking System) compatibility scoring
-- [ ] Create resume improvement suggestions based on job requirements
-- [ ] Implement skill extraction and keyword matching against job descriptions
-- [ ] Add resume template recommendations
-- [ ] Create resume comparison tool for job seekers
+- [x] Complete resume parsing and text extraction from PDF files ✅
+- [x] Implement AI-powered resume analysis using GPT/Claude API integration ✅
+- [x] Add ATS (Applicant Tracking System) compatibility scoring ✅
+- [x] Create resume improvement suggestions based on job requirements ✅
+- [x] Implement skill extraction and keyword matching against job descriptions ✅
+- [x] Add resume template recommendations ✅
+- [x] Create resume comparison tool for job seekers ✅
 
 ## 3. Job Matching & Recommendation System
 **Status**: Basic filtering exists, needs AI enhancement
