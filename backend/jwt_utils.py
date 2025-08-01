@@ -16,9 +16,12 @@ JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=15)  # Short-lived access tokens
 JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)    # Long-lived refresh tokens
 JWT_ALGORITHM = 'HS256'
 
-# Database collections
-users_db = mongo.db.users
-refresh_tokens_db = mongo.db.refresh_tokens
+# Database collections - accessed lazily to avoid import issues
+def get_users_db():
+    return mongo.db.users
+
+def get_refresh_tokens_db():
+    return mongo.db.refresh_tokens
 
 class JWTError(Exception):
     """Custom JWT error class"""
@@ -92,7 +95,7 @@ def generate_refresh_token(user_id: str) -> str:
             'last_used': now
         }
         
-        refresh_tokens_db.insert_one(refresh_token_doc)
+        get_refresh_tokens_db().insert_one(refresh_token_doc)
         
         return token
     except Exception as e:
@@ -120,7 +123,7 @@ def verify_access_token(token: str) -> dict:
             raise JWTError("Invalid token type")
         
         # Verify user still exists
-        user = users_db.find_one({'_id': ObjectId(payload['user_id'])})
+        user = get_users_db().find_one({'_id': ObjectId(payload['user_id'])})
         if not user:
             raise JWTError("User not found")
         
@@ -158,7 +161,7 @@ def verify_refresh_token(token: str) -> dict:
             raise JWTError("Invalid token type")
         
         # Check if token exists and is not revoked in database
-        token_doc = refresh_tokens_db.find_one({
+        token_doc = get_refresh_tokens_db().find_one({
             'jti': payload['jti'],
             'user_id': ObjectId(payload['user_id']),
             'is_revoked': False
@@ -168,7 +171,7 @@ def verify_refresh_token(token: str) -> dict:
             raise JWTError("Refresh token not found or revoked")
         
         # Verify user still exists and is active
-        user = users_db.find_one({'_id': ObjectId(payload['user_id'])})
+        user = get_users_db().find_one({'_id': ObjectId(payload['user_id'])})
         if not user:
             raise JWTError("User not found")
         
@@ -176,7 +179,7 @@ def verify_refresh_token(token: str) -> dict:
             raise JWTError("User account is deactivated")
         
         # Update last used timestamp
-        refresh_tokens_db.update_one(
+        get_refresh_tokens_db().update_one(
             {'jti': payload['jti']},
             {'$set': {'last_used': datetime.now(timezone.utc)}}
         )
@@ -186,7 +189,7 @@ def verify_refresh_token(token: str) -> dict:
         # Mark expired token as revoked
         try:
             expired_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM], options={"verify_exp": False})
-            refresh_tokens_db.update_one(
+            get_refresh_tokens_db().update_one(
                 {'jti': expired_payload.get('jti')},
                 {'$set': {'is_revoked': True, 'revoked_at': datetime.now(timezone.utc)}}
             )
@@ -218,7 +221,7 @@ def refresh_access_token(refresh_token: str) -> dict:
         user_id = refresh_payload['user_id']
         
         # Get current user data
-        user = users_db.find_one({'_id': ObjectId(user_id)})
+        user = get_users_db().find_one({'_id': ObjectId(user_id)})
         if not user:
             raise JWTError("User not found")
         
@@ -265,7 +268,7 @@ def revoke_refresh_token(token: str) -> bool:
             return False
         
         # Mark token as revoked in database
-        result = refresh_tokens_db.update_one(
+        result = get_refresh_tokens_db().update_one(
             {'jti': payload['jti']},
             {
                 '$set': {
@@ -291,7 +294,7 @@ def revoke_all_user_tokens(user_id: str) -> int:
         Number of tokens revoked
     """
     try:
-        result = refresh_tokens_db.update_many(
+        result = get_refresh_tokens_db().update_many(
             {
                 'user_id': ObjectId(user_id),
                 'is_revoked': False
@@ -321,7 +324,7 @@ def cleanup_expired_tokens():
         now = datetime.now(timezone.utc)
         
         # Delete expired tokens
-        result = refresh_tokens_db.delete_many({
+        result = get_refresh_tokens_db().delete_many({
             'expires_at': {'$lt': now}
         })
         
@@ -342,7 +345,7 @@ def get_user_active_tokens(user_id: str) -> list:
         List of active token documents
     """
     try:
-        tokens = refresh_tokens_db.find({
+        tokens = get_refresh_tokens_db().find({
             'user_id': ObjectId(user_id),
             'is_revoked': False,
             'expires_at': {'$gt': datetime.now(timezone.utc)}

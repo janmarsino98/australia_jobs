@@ -174,8 +174,8 @@ export default function JobsPage() {
     onSubmit({}); // Initial job fetch with empty params
   }, []);
 
-  const handleViewJobClick = (link) => {
-    navigate(`/job/${link}`);
+  const handleViewJobClick = (job) => {
+    navigate(`/job-details/${job._id}`);
   };
 
   const handleApplyClick = (job) => {
@@ -189,7 +189,7 @@ export default function JobsPage() {
         max: job.remuneration_amount,
         currency: 'AUD'
       } : undefined,
-      jobUrl: `${window.location.origin}/job/${job.slug}`,
+      jobUrl: `${window.location.origin}/job-details/${job._id}`,
     });
     
     // Show success message or redirect
@@ -627,7 +627,7 @@ export default function JobsPage() {
                   <Button
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handleViewJobClick(job.slug)}
+                    onClick={() => handleViewJobClick(job)}
                   >
                     View Details
                   </Button>

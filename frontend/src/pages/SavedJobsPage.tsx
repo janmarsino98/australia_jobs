@@ -79,7 +79,7 @@ const SavedJobsPage = () => {
   };
 
   const handleViewJob = (job: SavedJob) => {
-    navigate(`/jobs/${job.slug || job._id}`);
+    navigate(`/job-details/${job._id}`);
   };
 
   const startEditingNotes = (job: SavedJob) => {

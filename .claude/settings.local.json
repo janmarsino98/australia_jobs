@@ -8,7 +8,8 @@
       "Bash(npm run:*)",
       "Bash(rm:*)",
       "Bash(mv:*)",
-      "Bash(npx vite build:*)"
+      "Bash(npx vite build:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

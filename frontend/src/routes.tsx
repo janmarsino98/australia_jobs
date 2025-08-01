@@ -20,6 +20,7 @@ import PricingInformationPage from "./pages/PricingInformationPage";
 import PayingPage from "./pages/PayingPage";
 import Landing from "./pages/Landing";
 import Job from "./pages/Job";
+import JobDetailsPage from "./pages/JobDetailsPage";
 import SettingsPage from "./pages/SettingsPage";
 import ApplicationsPage from "./pages/ApplicationsPage";
 import ResourcesPage from "./pages/ResourcesPage";
@@ -32,6 +33,7 @@ import TermsOfServicePage from "./pages/TermsOfServicePage";
 import CookiePolicyPage from "./pages/CookiePolicyPage";
 import VlogPage from "./pages/VlogPage";
 import TechBlogPage from "./pages/TechBlogPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 import { Outlet } from "react-router-dom";
 
 
@@ -104,6 +106,10 @@ const routes = createBrowserRouter([
         element: <Job />,
       },
       {
+        path: "/job-details/:id",
+        element: <JobDetailsPage />,
+      },
+      {
         path: "/dashboard",
         element: (
           <AuthGuard>
@@ -148,6 +154,14 @@ const routes = createBrowserRouter([
         element: (
           <AuthGuard>
             <SettingsPage />
+          </AuthGuard>
+        ),
+      },
+      {
+        path: "/notifications",
+        element: (
+          <AuthGuard>
+            <NotificationsPage />
           </AuthGuard>
         ),
       },

@@ -200,7 +200,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
         company: job.firm,
         status: 'applied',
         location: job.location,
-        jobUrl: `/job/${job.id}`,
+        jobUrl: `/job-details/${job.id}`,
         appliedDate: Date.now(),
         lastUpdated: Date.now(),
       });

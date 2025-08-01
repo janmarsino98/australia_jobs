@@ -3,10 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import NavIconImg from "../atoms/NavIconImg";
 import NavTextOption from "../atoms/NavTextOption";
 import NavProfileIcon from "../atoms/NavProfileIcon";
+import { NotificationBell } from "./NotificationBell";
 import main_logo from "../../imgs/logo.svg";
 import config from "../../config";
 import useAuthStore from "../../stores/useAuthStore";
-import { Menu, X, Search, User, Settings, LogOut, Home, Briefcase, Info, DollarSign } from "lucide-react";
+import { Menu, X, Search, User, Settings, LogOut, Home, Briefcase, Info, DollarSign, Bell } from "lucide-react";
 
 interface NavbarProps {
   user?: {
@@ -190,6 +191,7 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                     Welcome, {user.profile?.first_name || user.name}
                   </span>
                   <div className="h-6 w-px bg-navbar-border hidden lg:block" />
+                  <NotificationBell className="mr-2" />
                   <div className="relative profile-dropdown">
                     <NavProfileIcon
                       profImg={getProfileImageUrl(user.profileImage, user.profile?.profile_picture)}
@@ -218,6 +220,14 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                             onClick={() => setShowDropdown(false)}
                           >
                             Your Profile
+                          </a>
+                          <a
+                            href="/notifications"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            role="menuitem"
+                            onClick={() => setShowDropdown(false)}
+                          >
+                            Notifications
                           </a>
                           <a
                             href="/settings"
@@ -387,6 +397,18 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                   >
                     <User size={20} />
                     <span className="font-medium">Your Profile</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleMobileNavigation('/notifications')}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                      location.pathname === '/notifications'
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Bell size={20} />
+                    <span className="font-medium">Notifications</span>
                   </button>
 
                   <button

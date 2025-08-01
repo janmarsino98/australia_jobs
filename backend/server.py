@@ -60,6 +60,8 @@ def create_app():
     from cities.cities import cities_bp
     from resume.resume import resume_bp
     from applications.applications import applications_bp
+    from notification_system import notifications_bp
+    from notification_preferences import notification_preferences_bp
     
     # Initialize OAuth
     try:
@@ -80,6 +82,8 @@ def create_app():
     app.register_blueprint(cities_bp, url_prefix='/cities')
     app.register_blueprint(resume_bp, url_prefix='/resume')
     app.register_blueprint(applications_bp, url_prefix='/applications')
+    app.register_blueprint(notifications_bp, url_prefix='/notifications')
+    app.register_blueprint(notification_preferences_bp, url_prefix='/notification-preferences')
 
     return app
 
