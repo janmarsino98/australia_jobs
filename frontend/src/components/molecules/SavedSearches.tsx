@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 import { Bookmark, X, Edit3, Bell, BellOff, Search } from "lucide-react";
 import useSavedSearchesStore, { SavedSearch } from "../../stores/useSavedSearchesStore";
 

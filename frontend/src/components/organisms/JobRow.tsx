@@ -1,10 +1,20 @@
 import JobCard from "../molecules/JobCard";
-import PropTypes from "prop-types";
+interface JobCard {
+  id: string | number;
+  title: string;
+  minSalary: number;
+  maxSalary: number;
+  imgSrc: string;
+}
 
-const JobRow = ({ jobCards }) => {
+interface JobRowProps {
+  jobCards: JobCard[];
+}
+
+const JobRow = ({ jobCards }: JobRowProps) => {
   return (
     <div className="flex flex-wrap pt-[16px] gap-[12px] justify-around">
-      {jobCards.map((card, index) => {
+      {jobCards.map((card: JobCard, index: number) => {
         return (
           <JobCard
             key={index}
@@ -19,16 +29,5 @@ const JobRow = ({ jobCards }) => {
   );
 };
 
-JobRow.propTypes = {
-  jobCards: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-      title: PropTypes.string,
-      minSalary: PropTypes.number,
-      maxSalary: PropTypes.number,
-      imgSrc: PropTypes.string,
-    })
-  ),
-};
 
 export default JobRow;

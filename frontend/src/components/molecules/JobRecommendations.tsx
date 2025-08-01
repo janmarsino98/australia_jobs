@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import httpClient from "../../httpClient";
 import { buildApiUrl } from "../../config";
-import useAuthStore from "../../stores/useAuthStore";
 import useJobApplicationStore from "../../stores/useJobApplicationStore";
 
 interface RecommendedJob {

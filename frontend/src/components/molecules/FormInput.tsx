@@ -24,7 +24,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
   );
   const [isFocused, setIsFocused] = useState(false);
   const [hasContent, setHasContent] = useState(false);
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Use document click listener to ensure blur works properly
   useEffect(() => {
@@ -61,7 +61,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
     setIsFocused(true);
   };
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleBlur = (_e: React.FocusEvent<HTMLInputElement>) => {
     // Use setTimeout to ensure blur fires after any click events
     setTimeout(() => {
       setIsFocused(false);

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import JobsPage from '../JobsPage'
@@ -431,7 +431,7 @@ describe('JobsPage', () => {
   })
 
   it('uses slug for navigation, falls back to _id if slug not available', async () => {
-    const user = userEvent.setup()
+    userEvent.setup()
     
     // Mock job with slug
     const jobWithSlug = {

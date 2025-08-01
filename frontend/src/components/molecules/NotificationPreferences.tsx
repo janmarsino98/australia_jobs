@@ -76,14 +76,6 @@ export const NotificationPreferences: React.FC<NotificationPreferencesProps> = (
     }
   };
 
-  const getChannelIcon = (channel: string) => {
-    switch (channel) {
-      case 'in_app': return <Bell className="h-4 w-4" />;
-      case 'email': return <Mail className="h-4 w-4" />;
-      case 'push': return <Smartphone className="h-4 w-4" />;
-      default: return null;
-    }
-  };
 
   const getChannelLabel = (channel: string) => {
     switch (channel) {

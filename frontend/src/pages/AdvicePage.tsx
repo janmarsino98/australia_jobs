@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -9,37 +9,24 @@ import {
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { Progress } from "../components/ui/progress";
-import { LoadingSpinner } from "../components/molecules/LoadingSpinner";
 import { useToast } from "../components/ui/use-toast";
 import { motion } from "framer-motion";
 import {
-  Calendar,
   Clock,
   Star,
   Users,
   MessageSquare,
-  BookOpen,
   Target,
   TrendingUp,
   Award,
   Briefcase,
-  User,
   ChevronRight,
   Play,
   FileText,
   CheckCircle,
   ArrowRight,
   Search,
-  Filter,
-  MapPin,
   DollarSign,
-  Video,
-  Phone,
-  Mail,
-  Globe,
-  LinkedIn,
-  UserCheck,
   Calendar as CalendarIcon,
   Clock as ClockIcon
 } from "lucide-react";
@@ -97,7 +84,7 @@ const AdvicePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('all');
   const [selectedIndustry, setSelectedIndustry] = useState('all');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [selectedAdvisor, setSelectedAdvisor] = useState<string | null>(null);
 
   // Mock data for advisors

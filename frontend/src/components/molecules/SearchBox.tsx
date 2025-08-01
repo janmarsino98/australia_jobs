@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Clock, X, MapPin, Building } from "lucide-react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Card, CardContent } from "../ui/card";
 import { buildApiUrl } from "../../config";
 import useSearchHistoryStore from "../../stores/useSearchHistoryStore";
@@ -20,12 +19,6 @@ interface SearchSuggestion {
   count?: number;
 }
 
-interface SearchHistoryItem {
-  query: string;
-  timestamp: number;
-  filters: Record<string, any>;
-  resultsCount: number;
-}
 
 const SearchBox: React.FC<SearchBoxProps> = ({ 
   onSearch, 
@@ -35,13 +28,12 @@ const SearchBox: React.FC<SearchBoxProps> = ({
   const navigate = useNavigate();
   const [query, setQuery] = useState<string>(defaultValue);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
+  const [, setShowAdvanced] = useState<boolean>(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   
   const searchRef = useRef<HTMLDivElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
   
   const { searches, addSearch } = useSearchHistoryStore();
 
@@ -172,8 +164,6 @@ const SearchBox: React.FC<SearchBoxProps> = ({
     // Add to search history
     addSearch({
       query: searchQuery,
-      timestamp: Date.now(),
-      filters: {},
       resultsCount: 0
     });
 

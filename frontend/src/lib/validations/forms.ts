@@ -137,7 +137,7 @@ export const signupFormSchema = z.object({
             "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"),
     confirmPassword: z.string(),
     role: z.enum(['job_seeker', 'employer'], {
-        required_error: "Please select your role"
+        message: "Please select your role"
     }),
     acceptTerms: z.boolean().refine(val => val === true, {
         message: "You must accept the terms and conditions"

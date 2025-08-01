@@ -95,7 +95,7 @@ const LocationDisplayer: React.FC<LocationDisplayerProps> = ({ onLocationChange 
             className="w-full"
           />
           {errors.state && (
-            <p className="text-sm text-red-500">{errors.state.message}</p>
+            <p className="text-sm text-red-500">{errors.state.message as string}</p>
           )}
 
           <Dropdown
@@ -107,7 +107,7 @@ const LocationDisplayer: React.FC<LocationDisplayerProps> = ({ onLocationChange 
             disabled={!selectedState}
           />
           {errors.city && (
-            <p className="text-sm text-red-500">{errors.city.message}</p>
+            <p className="text-sm text-red-500">{errors.city.message as string}</p>
           )}
         </div>
       </div>

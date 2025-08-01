@@ -4,13 +4,12 @@ import SearchBox from "../components/molecules/SearchBox";
 import JobRow from "../components/organisms/JobRow";
 import LocationDisplayer from "../components/molecules/LocationDisplayer";
 import MainFooter from "../components/molecules/MainFooter";
-import httpClient from "../httpClient";
-import { User, JobCard } from "../types";
+import { JobCard } from "../types";
 import useAuthStore from "../stores/useAuthStore";
 
 const Landing = (): JSX.Element => {
-  const { user, isAuthenticated } = useAuthStore();
-  const [jobCards, setJobCards] = useState<JobCard[]>([]);
+  const { user } = useAuthStore();
+  const [jobCards] = useState<JobCard[]>([]);
 
   useEffect(() => {
     // Fetch job cards or other data as needed

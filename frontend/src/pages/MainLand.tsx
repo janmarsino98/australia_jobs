@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import httpClient from "@/httpClient";
 
 export default function Component() {
-  const [user, setUser] = useState(null);
+  const [, setUser] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {

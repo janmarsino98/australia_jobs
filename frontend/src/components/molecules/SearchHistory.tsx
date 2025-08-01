@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Clock, X, Trash2 } from "lucide-react";
 import useSearchHistoryStore, { SearchHistoryItem } from "../../stores/useSearchHistoryStore";

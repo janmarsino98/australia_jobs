@@ -29,6 +29,7 @@ export interface User {
 }
 
 export interface JobCard {
+    id: string | number;
     title: string;
     imgSrc: string;
     minSalary: number;

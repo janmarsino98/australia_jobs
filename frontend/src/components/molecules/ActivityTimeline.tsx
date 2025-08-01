@@ -11,7 +11,6 @@ import {
   FileText,
   Heart,
   Eye,
-  Send
 } from "lucide-react";
 import { buildApiUrl } from "../../config";
 import useJobApplicationStore from "../../stores/useJobApplicationStore";

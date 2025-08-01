@@ -12,7 +12,11 @@ import { useZodForm } from "@/hooks/useZodForm";
 import { paymentFormSchema } from "@/lib/validations/forms";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const PaymentForm = ({ selectedPackage }) => {
+interface PaymentFormProps {
+  selectedPackage: any;
+}
+
+const PaymentForm = ({ selectedPackage }: PaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [clientSecret, setClientSecret] = useState("");

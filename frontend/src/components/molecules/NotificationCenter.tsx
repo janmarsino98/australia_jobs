@@ -4,22 +4,18 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { 
   Bell, 
-  BellRing,
   Check,
   X,
   Briefcase,
   Calendar,
   AlertTriangle,
-  Info,
   Star,
   Clock,
   TrendingUp,
   User,
   Settings,
-  Archive
 } from "lucide-react";
 import useJobApplicationStore from "../../stores/useJobApplicationStore";
-import useAuthStore from "../../stores/useAuthStore";
 
 interface Notification {
   id: string;
@@ -46,8 +42,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread' | 'important'>('all');
-  const { applications, getApplicationStats } = useJobApplicationStore();
-  const { user } = useAuthStore();
+  const { applications } = useJobApplicationStore();
 
   useEffect(() => {
     generateNotifications();

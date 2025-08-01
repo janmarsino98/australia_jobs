@@ -7,7 +7,7 @@ interface MiniJobCardProps {
   jobSchedule: string;
 }
 
-const MiniJobCard = ({ jobImg, jobTitle, jobType, jobSchedule }: MiniJobCardProps) => {
+const MiniJobCard = ({ jobTitle, jobType, jobSchedule }: MiniJobCardProps) => {
   return (
     <div className="w-max flex flex-row gap-4 h-max">
       <div className="w-[45px] h-[45px] rounded-full flex items-center justify-center bg-green-900 border-4 border-stone-600">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { buildApiUrl } from "../config";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -153,6 +153,8 @@ const UserProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'basic');
   const [newSkill, setNewSkill] = useState('');
+  const [, setEditingExperience] = useState<string | null>(null);
+  const [, setEditingEducation] = useState<string | null>(null);
 
   const {
     register,

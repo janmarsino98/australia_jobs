@@ -136,14 +136,14 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
     if (file) {
       setSelectedResume(file);
       setValue("resume", file);
-      setUseExistingResume(false);
+      // File selected, using uploaded resume
     }
   };
 
   const removeSelectedFile = () => {
     setSelectedResume(null);
     setValue("resume", undefined);
-    setUseExistingResume(hasExistingResume);
+    // File removed
   };
 
   const onSubmit = async (data: any) => {
@@ -188,7 +188,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
         throw new Error(errorData.message || 'Failed to submit application');
       }
 
-      const applicationData = await response.json();
+      await response.json();
       setSubmitStatus('success');
 
       // Add to local store for tracking
@@ -198,8 +198,6 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
         status: 'applied',
         location: job.location,
         jobUrl: `/job-details/${job.id}`,
-        appliedDate: Date.now(),
-        lastUpdated: Date.now(),
       });
 
       // Show success message and wait before closing
@@ -321,7 +319,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
                   placeholder="Tell us why you're perfect for this role..."
                 />
                 <div className="flex justify-between text-xs text-searchbar-text">
-                  <span>{errors.coverLetter?.message}</span>
+                  <span>{errors.coverLetter?.message as string}</span>
                   <span>{coverLetter?.length || 0}/2000</span>
                 </div>
               </div>
@@ -387,7 +385,7 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
                   </p>
                 </div>
                 {errors.resume && (
-                  <p className="text-xs text-red-600">{errors.resume.message}</p>
+                  <p className="text-xs text-red-600">{errors.resume.message as string}</p>
                 )}
               </div>
 
