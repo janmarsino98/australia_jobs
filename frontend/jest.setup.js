@@ -1,4 +1,12 @@
-import '@testing-library/jest-dom'
+require('@testing-library/jest-dom')
+
+// Mock import.meta
+global.importMeta = { env: { DEV: false, PROD: true } }
+Object.defineProperty(global, 'import', {
+    value: {
+        meta: { env: { DEV: false, PROD: true } }
+    }
+})
 
 // Mock IntersectionObserver
 class MockIntersectionObserver {

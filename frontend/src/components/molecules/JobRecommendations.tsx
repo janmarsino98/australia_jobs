@@ -213,7 +213,7 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({
       jobTitle: job.title,
       company: job.firm,
       location: job.location,
-      jobUrl: `/job-details/${job._id}`,
+      jobUrl: `/job-details/${job.slug || job._id}`,
       status: 'applied',
       salary: {
         min: parseInt(job.remuneration_amount) * 0.9,
@@ -356,7 +356,7 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({
                     variant="outline" 
                     size="sm"
                     className="text-xs"
-                    onClick={() => window.open(`/job-details/${job._id}`, '_blank')}
+                    onClick={() => window.open(`/job-details/${job.slug || job._id}`, '_blank')}
                   >
                     <ExternalLink className="w-3 h-3" />
                   </Button>

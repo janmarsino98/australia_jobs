@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import httpClient from "../httpClient";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -30,7 +30,7 @@ import useSavedSearchesStore from "../stores/useSavedSearchesStore";
 import useJobApplicationStore from "../stores/useJobApplicationStore";
 
 // Utility function to format location consistently
-const formatLocation = (location) => {
+const formatLocation = (location: string | { city: string; state: string }) => {
   if (!location) return '';
   
   if (typeof location === 'object') {
@@ -48,7 +48,7 @@ const formatLocation = (location) => {
 };
 
 // Utility function to safely render job description
-const formatDescription = (description) => {
+const formatDescription = (description: string | { introduction: string; responsibilities: string[]; requirements: string[] }) => {
   if (!description) return 'No description available';
   
   if (typeof description === 'object') {
@@ -118,7 +118,7 @@ export default function JobsPage() {
     }
   };
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (data: any) => {
     try {
       // Close any open suggestions
       setShowTitleSuggestions(false);
@@ -154,8 +154,8 @@ export default function JobsPage() {
     }
   };
 
-  const [cities, setCities] = useState([]);
-  const [jobs, setJobs] = useState([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
 
   const fetchCities = async () => {
     try {
@@ -174,11 +174,11 @@ export default function JobsPage() {
     onSubmit({}); // Initial job fetch with empty params
   }, []);
 
-  const handleViewJobClick = (job) => {
-    navigate(`/job-details/${job._id}`);
+  const handleViewJobClick = (job: any) => {
+    navigate(`/job-details/${job.slug || job._id}`);
   };
 
-  const handleApplyClick = (job) => {
+  const handleApplyClick = (job: any) => {
     // Add application to tracker
     addApplication({
       jobTitle: job.title,
@@ -189,26 +189,26 @@ export default function JobsPage() {
         max: job.remuneration_amount,
         currency: 'AUD'
       } : undefined,
-      jobUrl: `${window.location.origin}/job-details/${job._id}`,
+      jobUrl: `${window.location.origin}/job-details/${job.slug || job._id}`,
     });
     
     // Show success message or redirect
     alert('Application tracked successfully!');
   };
 
-  const handleSearchHistorySelect = (query, location) => {
+  const handleSearchHistorySelect = (query: string, location: string) => {
     setValue("title", query);
     if (location) setValue("location", formatLocation(location));
     // Trigger search with the selected history item
     onSubmit({ title: query, location: formatLocation(location) || "" });
   };
 
-  const handleTitleSuggestionSelect = (suggestion) => {
+  const handleTitleSuggestionSelect = (suggestion: string) => {
     setValue("title", suggestion);
     setShowTitleSuggestions(false);
   };
 
-  const handleLocationSuggestionSelect = (suggestion) => {
+  const handleLocationSuggestionSelect = (suggestion: string) =>   {
     setValue("location", suggestion);
     setShowLocationSuggestions(false);
   };
@@ -227,7 +227,7 @@ export default function JobsPage() {
     setShowSaveSearchDialog(false);
   };
 
-  const handleLoadSavedSearch = (filters) => {
+  const handleLoadSavedSearch = (filters: any) => {
     // Set all form values based on the saved search
     Object.keys(filters).forEach(key => {
       if (filters[key] !== undefined) {
@@ -250,7 +250,7 @@ export default function JobsPage() {
     onSubmit(formattedFilters);
   };
 
-  const handleProfileAction = (action) => {
+  const handleProfileAction = (action: string) => {
     // Navigate to different profile editing sections based on action
     switch (action) {
       case 'upload-resume':
@@ -323,7 +323,7 @@ export default function JobsPage() {
                     placeholder="Job title or keyword"
                     {...register("title")}
                     onFocus={() => setShowTitleSuggestions(true)}
-                    onChange={(e) => {
+                    onChange={(e: any) => {
                       register("title").onChange(e);
                       setShowTitleSuggestions(true);
                     }}
@@ -348,13 +348,13 @@ export default function JobsPage() {
                       setValue("location", value);
                       setShowLocationSuggestions(false);
                     }}
-                    value={formatLocation(watch("location"))}
+                    value={formatLocation(watch("location") || "")}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select location" />
                     </SelectTrigger>
                     <SelectContent>
-                      {cities.map((city) => {
+                      {cities.map((city: any) => {
                         // Handle both string and object city formats
                         const cityKey = typeof city === 'object' ? city._id : city;
                         const cityValue = typeof city === 'object' ? `${city.city}, ${city.state}` : city;
@@ -420,7 +420,7 @@ export default function JobsPage() {
                         placeholder="Enter search name..."
                         value={saveSearchName}
                         onChange={(e) => setSaveSearchName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSaveSearch()}
+                        onKeyPress={(e: any) => e.key === 'Enter' && handleSaveSearch()}
                       />
                       <Button
                         type="button"
@@ -594,7 +594,7 @@ export default function JobsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map((job) => (
+          {jobs.map((job: any) => (
             <Card key={job._id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <CardTitle className="text-xl">{job.title}</CardTitle>

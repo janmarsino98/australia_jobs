@@ -1,4 +1,4 @@
-export default {
+module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'jsdom',
     moduleNameMapper: {
@@ -11,6 +11,15 @@ export default {
         '^.+\\.(ts|tsx)$': ['ts-jest', {
             tsconfig: 'tsconfig.json'
         }]
+    },
+    globals: {
+        'ts-jest': {
+            tsconfig: {
+                compilerOptions: {
+                    module: 'esnext'
+                }
+            }
+        }
     },
     testMatch: [
         '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
