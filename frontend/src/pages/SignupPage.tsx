@@ -29,7 +29,7 @@ const SignupPage = () => {
       email: "",
       password: "",
       confirmPassword: "",
-      role: undefined,
+      role: "job_seeker" as "job_seeker" | "employer",
       acceptTerms: false,
     },
   });
@@ -211,7 +211,7 @@ const SignupPage = () => {
                     </label>
                   </div>
                   {errors.role && (
-                    <p className="text-sm text-red-600">{errors.role.message}</p>
+                    <p className="text-sm text-red-600">{String(errors.role.message) || 'This field is required'}</p>
                   )}
                 </div>
 
@@ -241,7 +241,7 @@ const SignupPage = () => {
                     </span>
                   </label>
                   {errors.acceptTerms && (
-                    <p className="text-sm text-red-600">{errors.acceptTerms.message}</p>
+                    <p className="text-sm text-red-600">{String(errors.acceptTerms.message) || 'This field is required'}</p>
                   )}
                 </div>
 

@@ -33,7 +33,7 @@ const ResetPasswordPage = () => {
     },
   });
 
-  const onRequestSubmit = async (data) => {
+  const onRequestSubmit = async (data: { email: string }) => {
     try {
       console.log('📧 Requesting password reset for:', data.email);
       const response = await fetch(buildApiUrl('/auth/reset-password/request'), {
@@ -55,7 +55,7 @@ const ResetPasswordPage = () => {
       setEmail(data.email);
       setStep("reset");
       console.log('✅ Password reset code sent successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Password reset request failed:', error);
       requestForm.setError("root", {
         message: error.message || "Failed to send reset code. Please try again.",
@@ -63,7 +63,7 @@ const ResetPasswordPage = () => {
     }
   };
 
-  const onResetSubmit = async (data) => {
+  const onResetSubmit = async (data: { code: string; newPassword: string }) => {
     try {
       console.log('🔐 Resetting password with code');
       const response = await fetch(buildApiUrl('/auth/reset-password/confirm'), {
@@ -88,7 +88,7 @@ const ResetPasswordPage = () => {
       navigate("/login", { 
         state: { message: "Password reset successful. Please login with your new password." }
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Password reset failed:', error);
       resetForm.setError("root", {
         message: error.message || "Failed to reset password. Please try again.",
@@ -166,7 +166,7 @@ const ResetPasswordPage = () => {
                 >
                   {requestForm.formState.isSubmitting ? (
                     <div className="flex items-center space-x-2">
-                      <LoadingSpinner size="sm" />
+                      <LoadingSpinner className="h-4 w-4" />
                       <span>Sending Code...</span>
                     </div>
                   ) : (
@@ -227,7 +227,7 @@ const ResetPasswordPage = () => {
                 >
                   {resetForm.formState.isSubmitting ? (
                     <div className="flex items-center space-x-2">
-                      <LoadingSpinner size="sm" />
+                      <LoadingSpinner className="h-4 w-4" />
                       <span>Resetting Password...</span>
                     </div>
                   ) : (

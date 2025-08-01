@@ -20,7 +20,7 @@ export default function CVAnalysisPage() {
   const [analysisState, setAnalysisState] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [user, setUser] = useState(null);
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
 
   // Resume store
@@ -78,7 +78,7 @@ export default function CVAnalysisPage() {
     }, 500);
   };
 
-  const handleFileUpload = async (event) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
@@ -116,7 +116,7 @@ export default function CVAnalysisPage() {
         title: "Upload successful",
         description: "Your resume has been uploaded successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload failed:", error);
       toast({
         title: "Upload failed",
@@ -136,7 +136,7 @@ export default function CVAnalysisPage() {
         title: "Resume deleted",
         description: "Your resume has been removed successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Delete failed",
         description: error.message,
@@ -145,14 +145,14 @@ export default function CVAnalysisPage() {
     }
   };
 
-  const handleRenameResume = async (newName) => {
+  const handleRenameResume = async (newName: string) => {
     try {
       await updateResumeName(newName);
       toast({
         title: "Resume renamed",
         description: `Resume renamed to "${newName}" successfully.`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Rename failed",
         description: error.message,
@@ -162,7 +162,7 @@ export default function CVAnalysisPage() {
     }
   };
 
-  const handleAnalysisComplete = (analysis) => {
+  const handleAnalysisComplete = (analysis: any) => {
     // Analysis completed
   };
 
@@ -330,7 +330,7 @@ export default function CVAnalysisPage() {
             <div>
               <ResumePreview
                 resumeId={currentResume?.id}
-                resumeFile={uploadedFile}
+                resumeFile={uploadedFile || undefined}
                 onAnalysisComplete={handleAnalysisComplete}
                 className="w-full"
               />

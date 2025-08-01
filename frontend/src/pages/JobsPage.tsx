@@ -184,6 +184,7 @@ export default function JobsPage() {
       jobTitle: job.title,
       company: job.firm || 'Company',
       location: formatLocation(job.location),
+      status: 'applied',
       salary: job.remuneration_amount ? {
         min: job.remuneration_amount,
         max: job.remuneration_amount,
@@ -196,11 +197,11 @@ export default function JobsPage() {
     alert('Application tracked successfully!');
   };
 
-  const handleSearchHistorySelect = (query: string, location: string) => {
+  const handleSearchHistorySelect = (query: string, location?: string) => {
     setValue("title", query);
     if (location) setValue("location", formatLocation(location));
     // Trigger search with the selected history item
-    onSubmit({ title: query, location: formatLocation(location) || "" });
+    onSubmit({ title: query, location: location ? formatLocation(location) : "" });
   };
 
   const handleTitleSuggestionSelect = (suggestion: string) => {

@@ -62,7 +62,7 @@ const stats = [
 const PricingInformationPage = () => {
   const navigate = useNavigate();
 
-  const handleSelectPackage = (pkg) => {
+  const handleSelectPackage = (pkg: any) => {
     navigate("/paying", { state: { selectedPackage: pkg } });
   };
 

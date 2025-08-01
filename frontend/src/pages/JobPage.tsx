@@ -53,7 +53,7 @@ const JobPage = (): JSX.Element => {
                   jobImg={job.avatar}
                   jobSchedule={job.remuneration_period}
                   jobType={job.jobtype}
-                  jobShedule={job.remuneration_period}
+                  jobSchedule={job.remuneration_period}
                   />
               ))}
             </div>

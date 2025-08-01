@@ -610,14 +610,14 @@ const UserProfilePage = () => {
                       <FormInput
                         label="City"
                         Icon={MapPin}
-                        error={errors.location?.city?.message}
+                        error={errors.location && typeof errors.location === 'object' && 'city' in errors.location ? (errors.location.city as any)?.message : undefined}
                         {...register("location.city")}
                       />
                       
                       <FormInput
                         label="State"
                         Icon={MapPin}
-                        error={errors.location?.state?.message}
+                        error={errors.location && typeof errors.location === 'object' && 'state' in errors.location ? (errors.location.state as any)?.message : undefined}
                         {...register("location.state")}
                       />
                     </div>
@@ -632,7 +632,7 @@ const UserProfilePage = () => {
                         placeholder="Tell employers about yourself, your experience, and what you're looking for..."
                       />
                       <div className="flex justify-between text-xs text-searchbar-text">
-                        <span>{errors.bio?.message}</span>
+                        <span>{String(errors.bio?.message) || ''}</span>
                         <span>{watch("bio")?.length || 0}/500</span>
                       </div>
                     </div>
@@ -1170,7 +1170,7 @@ const UserProfilePage = () => {
                           Icon={DollarSign}
                           inputType="number"
                           placeholder="50000"
-                          error={preferencesForm.formState.errors.salaryRange?.min?.message}
+                          error={preferencesForm.formState.errors.salaryRange && typeof preferencesForm.formState.errors.salaryRange === 'object' && 'min' in preferencesForm.formState.errors.salaryRange ? (preferencesForm.formState.errors.salaryRange.min as any)?.message : undefined}
                           {...preferencesForm.register("salaryRange.min", { valueAsNumber: true })}
                         />
                         <FormInput
@@ -1178,7 +1178,7 @@ const UserProfilePage = () => {
                           Icon={DollarSign}
                           inputType="number"
                           placeholder="120000"
-                          error={preferencesForm.formState.errors.salaryRange?.max?.message}
+                          error={preferencesForm.formState.errors.salaryRange && typeof preferencesForm.formState.errors.salaryRange === 'object' && 'max' in preferencesForm.formState.errors.salaryRange ? (preferencesForm.formState.errors.salaryRange.max as any)?.message : undefined}
                           {...preferencesForm.register("salaryRange.max", { valueAsNumber: true })}
                         />
                       </div>

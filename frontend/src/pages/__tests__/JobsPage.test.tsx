@@ -396,7 +396,6 @@ describe('JobsPage', () => {
   })
 
   it('handles location selection from dropdown', async () => {
-    const user = userEvent.setup()
     renderJobsPage()
 
     await waitFor(() => {
@@ -431,7 +430,7 @@ describe('JobsPage', () => {
   })
 
   it('uses slug for navigation, falls back to _id if slug not available', async () => {
-    userEvent.setup()
+    const user = userEvent.setup()
     
     // Mock job with slug
     const jobWithSlug = {
