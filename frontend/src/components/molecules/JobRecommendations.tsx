@@ -9,7 +9,6 @@ import {
   DollarSign, 
   Clock, 
   ExternalLink,
-  Bookmark,
   Heart
 } from "lucide-react";
 import httpClient from "../../httpClient";
@@ -28,6 +27,7 @@ interface RecommendedJob {
   posted: string;
   match_score?: number;
   reasons?: string[];
+  slug?: string;
 }
 
 interface JobRecommendationsProps {
@@ -41,7 +41,6 @@ export const JobRecommendations: React.FC<JobRecommendationsProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
-  const { user } = useAuthStore();
   const { addApplication } = useJobApplicationStore();
 
   useEffect(() => {

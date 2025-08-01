@@ -28,8 +28,8 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
   
   // Use document click listener to ensure blur works properly
   useEffect(() => {
-    const handleDocumentClick = (e) => {
-      if (inputRef.current && !inputRef.current.contains(e.target)) {
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
         if (isFocused) {
           setIsFocused(false);
         }
@@ -41,7 +41,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
   }, [isFocused, label]);
   
   // Track content state via onChange
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHasContent = e.target.value.length > 0;
     setHasContent(newHasContent);
     
@@ -61,7 +61,7 @@ const FormInput = forwardRef<HTMLInputElement, FormInputProps>(({ inputType, lab
     setIsFocused(true);
   };
 
-  const handleBlur = (e) => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     // Use setTimeout to ensure blur fires after any click events
     setTimeout(() => {
       setIsFocused(false);

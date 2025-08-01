@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import httpClient from "../../httpClient";
 import Category_Pill from "../atoms/Category_Pill";
 
@@ -11,7 +11,7 @@ interface CategoryChooserProps {
 }
 
 const CategoryChooser = ({ onCategoryChange }: CategoryChooserProps): JSX.Element => {
-  const [categories, setCategories] = useState<string[]>([]);
+  const [, setCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {

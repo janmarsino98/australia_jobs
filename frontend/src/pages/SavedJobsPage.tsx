@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -247,12 +247,10 @@ const SavedJobsPage = () => {
                   <div className="space-y-4">
                     {/* Job Type and Description Preview */}
                     <div>
-                      <Badge variant="secondary" className="mb-2">{job.jobtype}</Badge>
+                      <Badge className="mb-2">{job.jobtype}</Badge>
                       {job.description && (
                         <p className="text-sm text-gray-600 line-clamp-2">
-                          {typeof job.description === 'string' 
-                            ? job.description 
-                            : job.description.introduction}
+                          {job.description}
                         </p>
                       )}
                     </div>
@@ -340,12 +338,11 @@ const SavedJobsPage = () => {
       {showApplicationModal && selectedJob && (
         <JobApplicationModal
           job={{
-            _id: selectedJob._id,
+            id: selectedJob._id,
             title: selectedJob.title,
             firm: selectedJob.firm,
             location: selectedJob.location,
-            jobtype: selectedJob.jobtype,
-            description: selectedJob.description || ''
+            jobtype: selectedJob.jobtype
           }}
           isOpen={showApplicationModal}
           onClose={() => {

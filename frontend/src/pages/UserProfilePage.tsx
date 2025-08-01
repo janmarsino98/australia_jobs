@@ -21,9 +21,6 @@ import {
   Briefcase,
   GraduationCap,
   Award,
-  Globe,
-  Linkedin,
-  Github,
   Camera,
   Edit2,
   Save,
@@ -34,7 +31,6 @@ import {
   Building,
   DollarSign,
   Home,
-  Clock,
   Target
 } from "lucide-react";
 import * as z from "zod";
@@ -149,7 +145,6 @@ interface Certification {
 }
 
 const UserProfilePage = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuthStore();
@@ -157,14 +152,11 @@ const UserProfilePage = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState(searchParams.get('section') || 'basic');
-  const [editingExperience, setEditingExperience] = useState<string | null>(null);
-  const [editingEducation, setEditingEducation] = useState<string | null>(null);
   const [newSkill, setNewSkill] = useState('');
 
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     reset,
     formState: { errors, isSubmitting },
@@ -678,9 +670,9 @@ const UserProfilePage = () => {
                   <div className="flex gap-2">
                     <Input
                       value={newSkill}
-                      onChange={(e) => setNewSkill(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSkill(e.target.value)}
                       placeholder="Add a skill (e.g., JavaScript, Project Management)"
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                      onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
                     />
                     <Button onClick={addSkill} disabled={!newSkill.trim()}>
                       <Plus className="h-4 w-4" />

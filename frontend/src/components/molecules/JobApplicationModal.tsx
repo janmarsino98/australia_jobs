@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { buildApiUrl } from "../../config";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 import { Alert, AlertDescription } from "../ui/alert";
-import { LoadingSpinner } from "./LoadingSpinner";
 import EnhancedFormInput from "./EnhancedFormInput";
 import { useZodForm } from "../../hooks/useZodForm";
 import { useToast } from "../ui/use-toast";
@@ -89,7 +87,6 @@ const JobApplicationModal = ({ isOpen, onClose, job }: JobApplicationModalProps)
   const { addApplication } = useJobApplicationStore();
   const [selectedResume, setSelectedResume] = useState<File | null>(null);
   const [hasExistingResume, setHasExistingResume] = useState(false);
-  const [useExistingResume, setUseExistingResume] = useState(true);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string | null>(null);
 

@@ -86,7 +86,7 @@ interface AdminState {
   clearError: () => void;
 }
 
-const useAdminStore = create<AdminState>()((set, get) => ({
+const useAdminStore = create<AdminState>()((set, _get) => ({
   users: [],
   jobs: [],
   systemStats: null,

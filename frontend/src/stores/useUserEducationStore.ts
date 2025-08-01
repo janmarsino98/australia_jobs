@@ -242,9 +242,7 @@ const useUserEducationStore = create<UserEducationState>()(
           const newEducation = response.data.education;
           
           set((state) => ({
-            educations: state.educations.map(edu => 
-              edu.id === educationData.id ? newEducation : edu
-            ),
+            educations: [...state.educations, newEducation],
             isLoading: false
           }));
           
@@ -317,9 +315,7 @@ const useUserEducationStore = create<UserEducationState>()(
           const newCertification = response.data.certification;
           
           set((state) => ({
-            certifications: state.certifications.map(cert => 
-              cert.id === certificationData.id ? newCertification : cert
-            ),
+            certifications: [...state.certifications, newCertification],
             isLoading: false
           }));
           

@@ -62,6 +62,7 @@ interface AnalyticsState {
   clearLocalEvents: () => void;
   
   // API actions
+  sendEventToBackend: (event: AnalyticsEvent) => Promise<void>;
   sendPendingEvents: () => Promise<void>;
   fetchMetrics: (timeRange?: 'day' | 'week' | 'month' | 'year') => Promise<void>;
   fetchUserAnalytics: (userId?: string) => Promise<void>;

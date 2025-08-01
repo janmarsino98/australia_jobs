@@ -158,9 +158,7 @@ const useUserExperienceStore = create<UserExperienceState>()(
           const newExperience = response.data.experience;
           
           set((state) => ({
-            experiences: state.experiences.map(exp => 
-              exp.id === experienceData.id ? newExperience : exp
-            ),
+            experiences: [...state.experiences, newExperience],
             isLoading: false
           }));
           

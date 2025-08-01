@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { FormState, FormField } from '../types/store';
+import { FormState } from '../types/store';
 
 const useFormStore = create<FormState>()((set) => ({
     fields: {},

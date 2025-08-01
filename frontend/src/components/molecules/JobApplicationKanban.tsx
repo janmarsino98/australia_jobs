@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -131,10 +131,6 @@ export const JobApplicationKanban: React.FC<JobApplicationKanbanProps> = ({
     setShowMenu(null);
   };
 
-  const getStatusIcon = (status: JobApplication['status']) => {
-    const column = columns.find(col => col.id === status);
-    return column?.icon || Clock;
-  };
 
   const getStatusColor = (status: JobApplication['status']) => {
     const colors = {
