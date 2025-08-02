@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { buildApiUrl } from "../config";
+import config from "../config";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -12,6 +13,8 @@ import { useZodForm } from "../hooks/useZodForm";
 import { useToast } from "../components/ui/use-toast";
 import useAuthStore from "../stores/useAuthStore";
 import { motion } from "framer-motion";
+import ProfilePictureUploadModal from "../components/molecules/ProfilePictureUploadModal";
+import EmailChangeModal from "../components/molecules/EmailChangeModal";
 import { 
   User, 
   Mail, 
@@ -38,7 +41,6 @@ import * as z from "zod";
 // Profile update schemas
 const basicInfoSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
   phone: z.string()
     .regex(/^\+?61\d{9}$/, "Please enter a valid Australian phone number")
     .optional()
@@ -146,8 +148,45 @@ interface Certification {
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuthStore();
+
+  // Check for success message from email verification
+  useEffect(() => {
+    if (location.state?.message && location.state?.type === 'success') {
+      toast({
+        title: "Success",
+        description: location.state.message,
+        variant: "default",
+      });
+      // Clear the state after showing the message
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, toast]);
+
+  // Function to get the profile image with proxy support for LinkedIn images
+  const getProfileImageUrl = (profileImage?: string, profilePicture?: string) => {
+    const imageUrl = profileImage || profilePicture;
+    const fallbackImage = "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+    
+    if (!imageUrl) {
+      return fallbackImage;
+    }
+    
+    // Check if it's a local profile image (MongoDB ObjectId)
+    if (imageUrl.match(/^[0-9a-fA-F]{24}$/)) {
+      return `${config.apiBaseUrl}/users/profile/image/${imageUrl}`;
+    }
+    
+    // Check if it's a LinkedIn image URL
+    if (imageUrl.includes('media.licdn.com') || imageUrl.includes('linkedin.com')) {
+      // Use our image proxy for LinkedIn images
+      return `${config.apiBaseUrl}/auth/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+    }
+    
+    return imageUrl;
+  };
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,6 +194,8 @@ const UserProfilePage = () => {
   const [newSkill, setNewSkill] = useState('');
   const [, setEditingExperience] = useState<string | null>(null);
   const [, setEditingEducation] = useState<string | null>(null);
+  const [showProfilePictureModal, setShowProfilePictureModal] = useState(false);
+  const [showEmailChangeModal, setShowEmailChangeModal] = useState(false);
 
   const {
     register,
@@ -167,7 +208,6 @@ const UserProfilePage = () => {
     schema: basicInfoSchema,
     defaultValues: {
       name: "",
-      email: "",
       phone: "",
       bio: "",
       location: { city: "", state: "" }
@@ -229,7 +269,6 @@ const UserProfilePage = () => {
           // Populate form with existing data
           reset({
             name: profileData.name || "",
-            email: profileData.email || "",
             phone: profileData.phone || "",
             bio: profileData.bio || "",
             location: {
@@ -256,7 +295,6 @@ const UserProfilePage = () => {
             setProfile(initialProfile);
             reset({
               name: user.name,
-              email: user.email,
               phone: "",
               bio: "",
               location: user.location || { city: "", state: "" }
@@ -290,20 +328,36 @@ const UserProfilePage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
       }
 
       const updatedProfile = await response.json();
       setProfile(updatedProfile);
       
-      toast({
-        title: "Profile Updated",
-        description: "Your basic information has been updated successfully.",
-      });
-    } catch (error) {
+      // Check if email verification is pending
+      if (updatedProfile.email_verification_pending) {
+        toast({
+          title: "Email Verification Required",
+          description: updatedProfile.message || "A verification email has been sent to your new email address.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Profile Updated",
+          description: "Your basic information has been updated successfully.",
+        });
+      }
+    } catch (error: any) {
       console.error("Profile update failed:", error);
       setError("root", {
-        message: "Failed to update profile. Please try again.",
+        message: error.message || "Failed to update profile. Please try again.",
+      });
+      
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update profile. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -489,6 +543,7 @@ const UserProfilePage = () => {
     }
   };
 
+
   const sections = [
     { id: 'basic', label: 'Basic Info', icon: User },
     { id: 'experience', label: 'Experience', icon: Briefcase },
@@ -515,10 +570,39 @@ const UserProfilePage = () => {
         <div className="mb-8">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'U'}
+              <div
+                className="relative cursor-pointer group"
+                onClick={() => setShowProfilePictureModal(true)}
+              >
+                <img
+                  src={getProfileImageUrl(user?.profileImage, user?.profile?.profile_picture)}
+                  alt={`${profile?.name || user?.name} profile picture`}
+                  className="w-20 h-20 rounded-full border-2 border-gray-200 object-cover group-hover:opacity-80 transition-opacity"
+                  onError={(e) => {
+                    // Fallback to initials circle if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallbackDiv = target.nextElementSibling as HTMLElement;
+                    if (fallbackDiv) {
+                      fallbackDiv.style.display = 'flex';
+                    }
+                  }}
+                />
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold hidden group-hover:opacity-80 transition-opacity">
+                  {profile?.name?.charAt(0) || user?.name?.charAt(0) || 'U'}
+                </div>
+                
+                {/* Upload overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <button className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50">
+              
+              <button 
+                className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                onClick={() => setShowProfilePictureModal(true)}
+                title="Change profile picture"
+              >
                 <Camera className="w-3 h-3 text-gray-600" />
               </button>
             </div>
@@ -588,13 +672,32 @@ const UserProfilePage = () => {
                         {...register("name")}
                       />
                       
-                      <FormInput
-                        label="Email Address"
-                        Icon={Mail}
-                        inputType="email"
-                        error={errors.email?.message}
-                        {...register("email")}
-                      />
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-main-text flex items-center">
+                          <Mail className="w-4 h-4 mr-2" />
+                          Email Address
+                        </label>
+                        <div className="relative">
+                          <Input
+                            type="email"
+                            value={profile?.email || ""}
+                            readOnly
+                            className="bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors pr-10"
+                            onClick={() => setShowEmailChangeModal(true)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowEmailChangeModal(true)}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-pill-text"
+                            title="Change email address"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-searchbar-text">
+                          Click to change your email address
+                        </p>
+                      </div>
                     </div>
 
                     <FormInput
@@ -1289,6 +1392,23 @@ const UserProfilePage = () => {
           </div>
         </div>
       </div>
+      
+      {/* Profile Picture Upload Modal */}
+      <ProfilePictureUploadModal
+        isOpen={showProfilePictureModal}
+        onClose={() => setShowProfilePictureModal(false)}
+        currentProfilePicture={getProfileImageUrl(user?.profileImage, user?.profile?.profile_picture)}
+      />
+      
+      {/* Email Change Modal */}
+      <EmailChangeModal
+        isOpen={showEmailChangeModal}
+        onClose={() => setShowEmailChangeModal(false)}
+        currentEmail={profile?.email || user?.email || ""}
+        onEmailChangeRequested={() => {
+          // Optionally reload profile data or show pending verification indicator
+        }}
+      />
     </div>
   );
 };

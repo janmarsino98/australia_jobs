@@ -58,6 +58,11 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
       return fallbackImage;
     }
     
+    // Check if it's a local profile image (MongoDB ObjectId)
+    if (imageUrl.match(/^[0-9a-fA-F]{24}$/)) {
+      return `${config.apiBaseUrl}/users/profile/image/${imageUrl}`;
+    }
+    
     // Check if it's a LinkedIn image URL
     if (imageUrl.includes('media.licdn.com') || imageUrl.includes('linkedin.com')) {
       // Use our image proxy for LinkedIn images

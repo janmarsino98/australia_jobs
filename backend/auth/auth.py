@@ -374,7 +374,8 @@ def get_current_user():
             "created_at": user.get("created_at"),
             "updated_at": user.get("updated_at"),
             "last_login": user.get("last_login"),
-            "is_active": user.get("is_active", True)
+            "is_active": user.get("is_active", True),
+            "profileImage": user.get("profileImage")  # Include uploaded profile image
         }
         
         # Add profile information if available
@@ -1255,6 +1256,86 @@ def verify_email():
     except Exception as e:
         print(f"Error verifying email: {e}")
         return standardize_error_response("Failed to verify email", 500)
+
+
+@auth_bp.route("/verify-email-change", methods=["POST"])
+@validate_json_request
+def verify_email_change():
+    """Verify email change using verification token"""
+    try:
+        data = request.get_json()
+        print(f"Email change verification request data: {data}")
+        token = data.get("token", "").strip()
+        
+        if not token:
+            print("Error: No verification token provided")
+            return standardize_error_response("Verification token is required", 400)
+        
+        # Verify token
+        print(f"Verifying token: {token[:10]}...")
+        token_data = verify_email_verification_token(token)
+        
+        if not token_data:
+            print("Error: Token verification failed - token is invalid or expired")
+            return standardize_error_response("Invalid or expired verification token", 400)
+        
+        new_email = token_data["email"]
+        print(f"Token verified for email: {new_email}")
+        
+        # Find user with pending email change
+        user = users_db.find_one({"pending_email": new_email})
+        print(f"Found user with pending email change: {bool(user)}")
+        
+        if not user:
+            print(f"Error: No user found with pending_email: {new_email}")
+            return standardize_error_response("No pending email change found for this address", 404)
+        
+        # Check if new email is still available (in case another user registered with it)
+        existing_user = users_db.find_one({
+            "email": new_email,
+            "_id": {"$ne": user["_id"]}
+        })
+        if existing_user:
+            # Clean up pending email change
+            users_db.update_one(
+                {"_id": user["_id"]},
+                {
+                    "$unset": {"pending_email": "", "pending_email_at": ""},
+                    "$set": {"updated_at": datetime.utcnow()}
+                }
+            )
+            return standardize_error_response("This email address is no longer available", 409)
+        
+        # Update user email and clean up pending fields
+        users_db.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "email": new_email,
+                    "email_verified": True,
+                    "updated_at": datetime.utcnow()
+                },
+                "$unset": {"pending_email": "", "pending_email_at": ""}
+            }
+        )
+        
+        # Mark token as used
+        mark_token_as_used(token)
+        
+        return standardize_success_response({
+            "message": "Email address changed successfully",
+            "user": {
+                "id": str(user["_id"]),
+                "email": new_email,
+                "name": user.get("name", ""),
+                "role": user.get("role", "job_seeker"),
+                "email_verified": True
+            }
+        }, status_code=200)
+        
+    except Exception as e:
+        print(f"Error verifying email change: {e}")
+        return standardize_error_response("Failed to verify email change", 500)
 
 
 @auth_bp.route("/resend-verification", methods=["POST"])

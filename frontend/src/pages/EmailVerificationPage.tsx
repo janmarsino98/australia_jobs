@@ -8,8 +8,13 @@ import { LoadingSpinner } from "../components/molecules/LoadingSpinner";
 import { motion } from "framer-motion";
 import main_logo from "../imgs/logo.png";
 import { CheckCircle, XCircle, Mail, RefreshCw } from "lucide-react";
+import useAuthStore from "../stores/useAuthStore";
 
-const EmailVerificationPage = () => {
+interface EmailVerificationPageProps {
+  isEmailChange?: boolean;
+}
+
+const EmailVerificationPage = ({ isEmailChange = false }: EmailVerificationPageProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -17,6 +22,8 @@ const EmailVerificationPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  
+  const { refreshUser } = useAuthStore();
   
   const token = searchParams.get('token');
   // Get email from either search params or navigation state (from signup)
@@ -41,9 +48,12 @@ const EmailVerificationPage = () => {
   const verifyEmail = async (verificationToken: string) => {
     try {
       setStatus('verifying');
-      console.log('🔍 Verifying email with token');
+      console.log('🔍 Verifying email with token', { isEmailChange, token: verificationToken.substring(0, 10) + '...' });
       
-      const response = await fetch(buildApiUrl('/auth/verify-email'), {
+      const endpoint = isEmailChange ? '/auth/verify-email-change' : '/auth/verify-email';
+      console.log('📡 Making request to:', endpoint);
+      
+      const response = await fetch(buildApiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,12 +64,39 @@ const EmailVerificationPage = () => {
         }),
       });
 
+      console.log('📡 Response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Verification failed with error:', errorData);
         throw new Error(errorData.message || 'Failed to verify email');
       }
 
-      console.log('✅ Email verified successfully');
+      const responseData = await response.json();
+      console.log('✅ Email verified successfully, response:', responseData);
+      
+      // If this is an email change verification, refresh the user data to show the new email
+      if (isEmailChange) {
+        console.log('🔄 This is email change verification, refreshing user data...');
+        try {
+          await refreshUser();
+          console.log('✅ User data refreshed successfully');
+          
+          // After successful email change and refresh, redirect to profile after showing success
+          setTimeout(() => {
+            console.log('🔄 Redirecting to profile page...');
+            navigate('/profile', { 
+              state: { 
+                message: 'Your email address has been successfully updated!',
+                type: 'success' 
+              } 
+            });
+          }, 3000); // Wait 3 seconds to show success message
+        } catch (refreshError) {
+          console.error('❌ Failed to refresh user data:', refreshError);
+        }
+      }
+      
       setStatus('success');
     } catch (error) {
       console.error('❌ Email verification failed:', error);
@@ -131,13 +168,13 @@ const EmailVerificationPage = () => {
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-main-text">
-                Email Verification
+                {isEmailChange ? "Email Change Verification" : "Email Verification"}
               </h1>
               <p className="text-searchbar-text text-sm mt-2">
-                {status === 'pending' && !token && "Check your email for the verification link"}
-                {status === 'verifying' && "Verifying your email address..."}
-                {status === 'success' && "Your email has been verified successfully"}
-                {status === 'error' && "Email verification failed"}
+                {status === 'pending' && !token && (isEmailChange ? "Check your new email address for the verification link" : "Check your email for the verification link")}
+                {status === 'verifying' && (isEmailChange ? "Verifying your new email address..." : "Verifying your email address...")}
+                {status === 'success' && (isEmailChange ? "Your email address has been changed successfully" : "Your email has been verified successfully")}
+                {status === 'error' && (isEmailChange ? "Email change verification failed" : "Email verification failed")}
               </p>
             </div>
           </CardHeader>
@@ -163,18 +200,26 @@ const EmailVerificationPage = () => {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-main-text mb-2">
-                    Email Verified Successfully!
+                    {isEmailChange ? "Email Changed Successfully!" : "Email Verified Successfully!"}
                   </h3>
                   <p className="text-searchbar-text text-sm">
-                    Your account is now active. You can start using all features of AusJobs.
+                    {isEmailChange 
+                      ? "Your email address has been updated successfully. Your profile will be automatically updated and you'll be redirected to your profile page."
+                      : "Your account is now active. You can start using all features of AusJobs."
+                    }
                   </p>
                 </div>
                 <Button 
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(isEmailChange ? '/profile' : '/login')}
                   className="w-full"
                 >
-                  Continue to Login
+                  {isEmailChange ? "Back to Profile" : "Continue to Login"}
                 </Button>
+                {isEmailChange && (
+                  <p className="text-xs text-searchbar-text text-center mt-2">
+                    Your profile has been automatically updated with your new email address.
+                  </p>
+                )}
               </div>
             )}
 

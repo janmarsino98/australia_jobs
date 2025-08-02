@@ -14,6 +14,8 @@ interface AuthState {
     logout: () => void;
     checkSession: () => Promise<boolean>;
     initialize: () => void;
+    setUser: (user: User) => void;
+    refreshUser: () => Promise<void>;
 }
 
 const useAuthStore = create<AuthState>()(
@@ -63,8 +65,8 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
-                                // Map profile image from LinkedIn if available
-                                profileImage: userData.profile?.profile_picture
+                                // Use uploaded profile image if available, otherwise use LinkedIn profile picture
+                                profileImage: userData.profileImage || userData.profile?.profile_picture
                             },
                             isAuthenticated: true,
                         });
@@ -101,8 +103,8 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
-                                // Map profile image from LinkedIn if available
-                                profileImage: userData.profile?.profile_picture
+                                // Use uploaded profile image if available, otherwise use LinkedIn profile picture
+                                profileImage: userData.profileImage || userData.profile?.profile_picture
                             },
                             isAuthenticated: true,
                         });
@@ -139,8 +141,8 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
-                                // Map profile image from LinkedIn if available
-                                profileImage: userData.profile?.profile_picture
+                                // Use uploaded profile image if available, otherwise use LinkedIn profile picture
+                                profileImage: userData.profileImage || userData.profile?.profile_picture
                             },
                             isAuthenticated: true,
                         });
@@ -195,6 +197,50 @@ const useAuthStore = create<AuthState>()(
                         user: null,
                         isAuthenticated: false,
                     });
+                }
+            },
+
+            setUser: (user: User) => {
+                set({ user, isAuthenticated: true });
+            },
+
+            refreshUser: async () => {
+                try {
+                    console.log('🔄 Refreshing user data from auth store...');
+                    const response = await httpClient.get(`${config.apiBaseUrl}/auth/@me`);
+                    console.log('📡 Refresh response:', response.status, response.data);
+
+                    if (response.data && response.data.user) {
+                        const userData = response.data.user;
+                        console.log('👤 Updated user data:', userData);
+
+                        const newUserState = {
+                            id: userData.id,
+                            email: userData.email,
+                            name: userData.name,
+                            role: userData.role,
+                            email_verified: userData.email_verified,
+                            profile: userData.profile,
+                            oauth_accounts: userData.oauth_accounts,
+                            created_at: userData.created_at,
+                            last_login: userData.last_login,
+                            is_active: userData.is_active,
+                            // Use uploaded profile image if available, otherwise use LinkedIn profile picture
+                            profileImage: userData.profileImage || userData.profile?.profile_picture
+                        };
+
+                        console.log('🔄 Setting new user state:', newUserState);
+                        set({
+                            user: newUserState,
+                            isAuthenticated: true,
+                        });
+                        console.log('✅ User state updated successfully');
+                    } else {
+                        console.warn('⚠️ No user data in refresh response');
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to refresh user data:', error);
+                    throw error;
                 }
             },
         }),

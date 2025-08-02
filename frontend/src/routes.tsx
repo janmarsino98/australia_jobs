@@ -66,6 +66,10 @@ const routes = createBrowserRouter([
         element: <EmailVerificationPage />,
       },
       {
+        path: "/verify-email-change",
+        element: <EmailVerificationPage isEmailChange={true} />,
+      },
+      {
         path: "/oauth/callback",
         element: <OAuthCallbackPage />,
       },

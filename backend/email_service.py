@@ -416,4 +416,87 @@ def send_email_verification(email, name, token):
         
     except Exception as e:
         print(f"Error sending email verification: {e}")
-        return False, str(e) 
+        return False, str(e)
+
+
+def send_email_change_verification(new_email, name, token, current_email):
+    """Send email change verification email to new email address"""
+    try:
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+        verification_url = f"{frontend_url}/verify-email-change?token={token}"
+        
+        template = get_email_change_verification_template()
+        html_body = render_template_string(template, 
+            name=name, 
+            new_email=new_email,
+            current_email=current_email,
+            verification_url=verification_url,
+            token=token
+        )
+        
+        subject = "Verify Your New Email Address - Australia Jobs"
+        
+        success, message = send_email(new_email, subject, html_body)
+        return success, message
+        
+    except Exception as e:
+        print(f"Error sending email change verification: {e}")
+        return False, str(e)
+
+
+def get_email_change_verification_template():
+    """Get HTML template for email change verification"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your New Email Address - Australia Jobs</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 8px; margin: 20px 0; }
+            .button { 
+                display: inline-block; 
+                background: #2563eb; 
+                color: white !important; 
+                padding: 12px 24px; 
+                text-decoration: none; 
+                border-radius: 6px; 
+                margin: 20px 0; 
+                font-weight: bold;
+                text-align: center;
+                font-size: 16px;
+            }
+            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+            .token { background: #e5e7eb; padding: 10px; border-radius: 4px; font-family: monospace; word-break: break-all; margin: 10px 0; }
+            .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="logo">Australia Jobs</div>
+        </div>
+        <div class="content">
+            <h2>Verify Your New Email Address</h2>
+            <p>Hello {{ name }},</p>
+            <p>You have requested to change your email address on your Australia Jobs account from <strong>{{ current_email }}</strong> to <strong>{{ new_email }}</strong>.</p>
+            <p>To complete this change, please verify your new email address by clicking the button below:</p>
+            <a href="{{ verification_url }}" class="button">Verify New Email Address</a>
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <div class="token">{{ verification_url }}</div>
+            <div class="warning">
+                <strong>Security Notice:</strong> If you did not request this email change, please ignore this email and contact our support team immediately. Your current email address will remain unchanged.
+            </div>
+            <p><strong>Note:</strong> This verification link will expire in 24 hours for security reasons.</p>
+        </div>
+        <div class="footer">
+            <p>This email was sent to {{ new_email }} for verification purposes.</p>
+            <p>Your account is currently associated with {{ current_email }}.</p>
+            <p>&copy; 2024 Australia Jobs. All rights reserved.</p>
+        </div>
+    </body>
+    </html>
+    """

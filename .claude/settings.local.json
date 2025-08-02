@@ -12,7 +12,10 @@
       "Bash(npx vite build:*)",
       "Bash(curl:*)",
       "Bash(npm test:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }
