@@ -57,10 +57,31 @@ export const NotificationsPage: React.FC = () => {
   };
 
   const handleCreateTestNotification = async () => {
-    await createTestNotification(
-      'Test Notification',
-      'This is a test notification to verify the system is working correctly.'
-    );
+    const testNotifications = [
+      {
+        title: 'Application Submitted',
+        message: 'Your application for Senior Software Developer at TechCorp has been submitted successfully.'
+      },
+      {
+        title: 'New Job Match Found',
+        message: 'We found a 95% match: Full Stack Developer at InnovateLabs. Check it out!'
+      },
+      {
+        title: 'Interview Scheduled',
+        message: 'Great news! You have been selected for an interview at DevCorp for the React Developer position.'
+      },
+      {
+        title: 'Resume Analysis Complete',
+        message: 'Your resume analysis is ready! Overall ATS score: 87/100. View detailed feedback.'
+      },
+      {
+        title: 'Account Security Alert',
+        message: 'New login detected from Sydney, NSW. If this wasn\'t you, please secure your account.'
+      }
+    ];
+    
+    const randomNotification = testNotifications[Math.floor(Math.random() * testNotifications.length)];
+    await createTestNotification(randomNotification.title, randomNotification.message);
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -195,14 +216,15 @@ export const NotificationsPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    {process.env.NODE_ENV === 'development' && (
-                      <button
-                        onClick={handleCreateTestNotification}
-                        className="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 border border-gray-300 rounded-md"
-                      >
-                        Create Test
-                      </button>
-                    )}
+                    <button
+                      onClick={handleCreateTestNotification}
+                      disabled={isLoading}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 hover:text-green-800 disabled:opacity-50 border border-green-300 hover:border-green-400 rounded-md transition-colors"
+                      title="Create a random test notification"
+                    >
+                      <Bell className="h-4 w-4 mr-1" />
+                      Add Test Notification
+                    </button>
                     
                     {unreadCount > 0 && (
                       <button

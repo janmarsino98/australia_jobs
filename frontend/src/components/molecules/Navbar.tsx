@@ -4,6 +4,7 @@ import NavIconImg from "../atoms/NavIconImg";
 import NavTextOption from "../atoms/NavTextOption";
 import NavProfileIcon from "../atoms/NavProfileIcon";
 import { NotificationBell } from "./NotificationBell";
+import { useNotificationStore } from "../../stores/useNotificationStore";
 import main_logo from "../../imgs/logo.svg";
 import config from "../../config";
 import useAuthStore from "../../stores/useAuthStore";
@@ -28,6 +29,7 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const logout = useAuthStore(state => state.logout);
+  const { unreadCount } = useNotificationStore();
 
   const handleLogoClick = () => {
     navigate("/");
@@ -228,11 +230,16 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
                           </a>
                           <a
                             href="/notifications"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                             role="menuitem"
                             onClick={() => setShowDropdown(false)}
                           >
-                            Notifications
+                            <span>Notifications</span>
+                            {unreadCount > 0 && (
+                              <span className="bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center min-w-[16px]">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                              </span>
+                            )}
                           </a>
                           <a
                             href="/settings"
@@ -406,14 +413,21 @@ const Navbar = ({ user }: NavbarProps): JSX.Element => {
 
                   <button
                     onClick={() => handleMobileNavigation('/notifications')}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors ${
                       location.pathname === '/notifications'
                         ? 'bg-blue-50 text-blue-600' 
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <Bell size={20} />
-                    <span className="font-medium">Notifications</span>
+                    <div className="flex items-center space-x-3">
+                      <Bell size={20} />
+                      <span className="font-medium">Notifications</span>
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
                   </button>
 
                   <button

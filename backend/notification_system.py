@@ -15,7 +15,7 @@ from utils import (
     validate_required_fields, validate_json_request, 
     standardize_error_response, standardize_success_response, require_auth
 )
-from auth_decorators import jwt_required, get_current_user_id
+# Session-based authentication is used instead of JWT
 
 # Database collections - accessed lazily to avoid import issues
 def get_notifications_db():
@@ -316,12 +316,12 @@ def cleanup_expired_notifications():
 
 # API Endpoints
 
-@notifications_bp.route("/", methods=["GET"])
-@jwt_required()
+@notifications_bp.route("", methods=["GET"])
+@require_auth
 def get_notifications():
     """Get notifications for current user"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         
         # Get query parameters
         status = request.args.get('status')
@@ -350,53 +350,60 @@ def get_notifications():
         total_count = get_notifications_db().count_documents({'user_id': ObjectId(user_id)})
         unread_count = get_notification_count(user_id, unread_only=True)
         
-        return standardize_success_response({
-            'notifications': notifications,
-            'pagination': {
-                'page': page,
-                'limit': limit,
-                'total': total_count,
-                'pages': (total_count + limit - 1) // limit
-            },
-            'unread_count': unread_count
-        }, status_code=200)
+        return jsonify({
+            'success': True,
+            'data': {
+                'notifications': notifications,
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total': total_count,
+                    'pages': (total_count + limit - 1) // limit
+                },
+                'unread_count': unread_count
+            }
+        }), 200
         
     except Exception as e:
         print(f"Error getting notifications: {e}")
         return standardize_error_response("Failed to get notifications", 500)
 
 @notifications_bp.route("/count", methods=["GET"])
-@jwt_required()
+@require_auth
 def get_notification_count_endpoint():
     """Get notification count for current user"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         unread_only = request.args.get('unread_only', 'true').lower() == 'true'
         
         count = get_notification_count(user_id, unread_only)
         
-        return standardize_success_response({
-            'count': count,
-            'unread_only': unread_only
-        }, status_code=200)
+        return jsonify({
+            'success': True,
+            'data': {
+                'count': count,
+                'unread_only': unread_only
+            }
+        }), 200
         
     except Exception as e:
         print(f"Error getting notification count: {e}")
         return standardize_error_response("Failed to get notification count", 500)
 
 @notifications_bp.route("/<notification_id>/read", methods=["PUT"])
-@jwt_required()
+@require_auth
 def mark_notification_read(notification_id):
     """Mark a notification as read"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         
         success = mark_notification_as_read(notification_id, user_id)
         
         if success:
-            return standardize_success_response({
+            return jsonify({
+                'success': True,
                 'message': 'Notification marked as read'
-            }, status_code=200)
+            }), 200
         else:
             return standardize_error_response("Notification not found or already read", 404)
         
@@ -405,36 +412,38 @@ def mark_notification_read(notification_id):
         return standardize_error_response("Failed to mark notification as read", 500)
 
 @notifications_bp.route("/read-all", methods=["PUT"])
-@jwt_required()
+@require_auth
 def mark_all_notifications_read():
     """Mark all notifications as read for current user"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         
         count = mark_all_notifications_as_read(user_id)
         
-        return standardize_success_response({
+        return jsonify({
+            'success': True,
             'message': f'Marked {count} notifications as read',
             'count': count
-        }, status_code=200)
+        }), 200
         
     except Exception as e:
         print(f"Error marking all notifications as read: {e}")
         return standardize_error_response("Failed to mark notifications as read", 500)
 
 @notifications_bp.route("/<notification_id>", methods=["DELETE"])
-@jwt_required()
+@require_auth
 def delete_notification_endpoint(notification_id):
     """Delete a notification"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         
         success = delete_notification(notification_id, user_id)
         
         if success:
-            return standardize_success_response({
+            return jsonify({
+                'success': True,
                 'message': 'Notification deleted'
-            }, status_code=200)
+            }), 200
         else:
             return standardize_error_response("Notification not found", 404)
         
@@ -443,11 +452,11 @@ def delete_notification_endpoint(notification_id):
         return standardize_error_response("Failed to delete notification", 500)
 
 @notifications_bp.route("/test", methods=["POST"])
-@jwt_required()
+@require_auth
 def create_test_notification():
     """Create a test notification (for development)"""
     try:
-        user_id = get_current_user_id()
+        user_id = session.get("user_id")
         
         data = request.get_json() or {}
         title = data.get('title', 'Test Notification')
@@ -462,10 +471,13 @@ def create_test_notification():
             {'test': True}
         )
         
-        return standardize_success_response({
-            'notification_id': notification_id,
+        return jsonify({
+            'success': True,
+            'data': {
+                'notification_id': notification_id
+            },
             'message': 'Test notification created'
-        }, status_code=201)
+        }), 201
         
     except Exception as e:
         print(f"Error creating test notification: {e}")

@@ -35,7 +35,11 @@ def create_app():
     bcrypt.init_app(app)
     server_session.init_app(app)
     mail.init_app(app)
-    CORS(app, supports_credentials=True)
+    CORS(app, 
+         origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"], 
+         supports_credentials=True,
+         allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'X-XSRF-TOKEN', 'X-Content-Type-Options', 'X-Frame-Options', 'X-XSS-Protection'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
     
     # Test MongoDB connection
     try:
