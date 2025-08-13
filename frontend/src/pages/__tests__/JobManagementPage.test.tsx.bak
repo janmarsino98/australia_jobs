@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'
@@ -93,7 +93,7 @@ describe('JobManagementPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Job Management')).toBeInTheDocument()
       expect(screen.getByText('Manage your job postings and track their performance')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Check stats cards
     expect(screen.getByText('Active Jobs')).toBeInTheDocument()
@@ -105,49 +105,42 @@ describe('JobManagementPage', () => {
   test('displays job listings with correct information', async () => {
     renderJobManagementPage()
     
-    // Wait for job data to load and animations to complete
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
       expect(screen.getByText('Product Manager')).toBeInTheDocument()
       expect(screen.getByText('Frontend Developer')).toBeInTheDocument()
       expect(screen.getByText('Marketing Specialist')).toBeInTheDocument()
-      // Also check for salary content to ensure full rendering
-      expect(screen.getAllByText(/\$/).length).toBeGreaterThan(0)
-    }, { timeout: 3000 })
+    })
 
     // Check job details
     expect(screen.getByText('Sydney, NSW')).toBeInTheDocument()
     expect(screen.getByText('Melbourne, VIC')).toBeInTheDocument()
     expect(screen.getByText('full-time • hybrid')).toBeInTheDocument()
+    expect(screen.getByText('$120,000 - $150,000 year')).toBeInTheDocument()
   })
 
   test('displays correct status badges and icons', async () => {
     renderJobManagementPage()
     
     await waitFor(() => {
-      expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-      // Use getAllByText for status badges since they appear in both filter dropdown and job cards
-      expect(screen.getAllByText('Active').length).toBeGreaterThanOrEqual(2) // Filter option + job badges
-      expect(screen.getAllByText('Paused').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('Draft').length).toBeGreaterThan(0)
-    }, { timeout: 3000 })
+      expect(screen.getByText('Active')).toBeInTheDocument()
+      expect(screen.getByText('Paused')).toBeInTheDocument()
+      expect(screen.getByText('Draft')).toBeInTheDocument()
+    })
   })
 
   test('displays performance metrics for each job', async () => {
     renderJobManagementPage()
     
-    // Wait for jobs to load first
     await waitFor(() => {
-      expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 3000 })
-
-    // Then check for individual job metrics within job cards
-    await waitFor(() => {
-      // These numbers appear in the job performance sections
-      expect(screen.getByText('47')).toBeInTheDocument() // Senior Software Engineer applications
-      expect(screen.getByText('23')).toBeInTheDocument() // Product Manager applications
-      expect(screen.getByText('12')).toBeInTheDocument() // Frontend Developer applications
-    }, { timeout: 2000 })
+      // Check applications count
+      expect(screen.getByText('47')).toBeInTheDocument()
+      expect(screen.getByText('23')).toBeInTheDocument()
+      
+      // Check views
+      expect(screen.getByText('1,234')).toBeInTheDocument()
+      expect(screen.getByText('567')).toBeInTheDocument()
+    })
   })
 
   test('handles search functionality', async () => {
@@ -156,7 +149,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const searchInput = screen.getByPlaceholderText('Search jobs by title, department, or location...')
     await user.type(searchInput, 'Senior')
@@ -177,7 +170,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const statusFilter = screen.getByDisplayValue('All Status')
     await user.selectOptions(statusFilter, 'draft')
@@ -192,19 +185,14 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const sortSelect = screen.getByDisplayValue('Date Created')
     await user.selectOptions(sortSelect, 'applications')
     
-    // Wait for sorting to take effect - simplified test
-    await waitFor(() => {
-      // Just verify that the sorting mechanism works by checking that jobs are still visible
-      expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-      expect(screen.getByText('Marketing Specialist')).toBeInTheDocument()
-      // And that the sort select has changed
-      expect(screen.getByDisplayValue('Applications')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    // Jobs should be sorted by applications (Senior Software Engineer has most applications)
+    const jobTitles = screen.getAllByText(/Engineer|Manager|Developer|Specialist/)
+    expect(jobTitles[0]).toHaveTextContent('Senior Software Engineer')
   })
 
   test('handles job selection and bulk actions', async () => {
@@ -213,22 +201,17 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Select first job
     const checkboxes = screen.getAllByRole('checkbox')
-    await act(async () => {
-      await user.click(checkboxes[0])
-    })
+    await user.click(checkboxes[0])
     
     // Should show bulk actions
     expect(screen.getByText('1 job selected')).toBeInTheDocument()
-    
-    // Find bulk action buttons within the bulk actions container
-    const bulkActionsContainer = screen.getByText('1 job selected').parentElement!
-    expect(within(bulkActionsContainer).getByRole('button', { name: 'Pause' })).toBeInTheDocument()
-    expect(within(bulkActionsContainer).getByRole('button', { name: 'Activate' })).toBeInTheDocument()
-    expect(within(bulkActionsContainer).getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Activate' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
   })
 
   test('handles post new job button', async () => {
@@ -237,7 +220,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Job Management')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const postJobButton = screen.getByRole('button', { name: 'Post New Job' })
     await user.click(postJobButton)
@@ -251,7 +234,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const viewButtons = screen.getAllByRole('button', { name: 'View' })
     await user.click(viewButtons[0])
@@ -265,7 +248,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const editButtons = screen.getAllByRole('button', { name: 'Edit' })
     await user.click(editButtons[0])
@@ -281,14 +264,10 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
-    // Find the individual pause button (not the bulk action one)
-    const pauseButtons = screen.getAllByRole('button', { name: 'Pause' })
-    const individualPauseButton = pauseButtons.find(button => 
-      !button.closest('[class*="bg-blue-50"]') // Not in bulk actions container
-    ) || pauseButtons[0]
-    await user.click(individualPauseButton)
+    const pauseButton = screen.getByRole('button', { name: 'Pause' })
+    await user.click(pauseButton)
     
     await waitFor(() => {
       expect(mockHttpClient.patch).toHaveBeenCalledWith('http://localhost:5000/jobs/1/pause')
@@ -296,7 +275,7 @@ describe('JobManagementPage', () => {
         title: 'Job Paused',
         description: 'Job posting has been paused.'
       })
-    }, { timeout: 2000 })
+    })
   })
 
   test('handles activate job action', async () => {
@@ -307,15 +286,11 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Frontend Developer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Frontend Developer is paused, so should have Activate button
-    // Find the individual activate button (not in bulk actions)
-    const activateButtons = screen.getAllByRole('button', { name: 'Activate' })
-    const individualActivateButton = activateButtons.find(button => 
-      !button.closest('[class*="bg-blue-50"]') // Not in bulk actions container
-    ) || activateButtons[0]
-    await user.click(individualActivateButton)
+    const activateButton = screen.getByRole('button', { name: 'Activate' })
+    await user.click(activateButton)
     
     await waitFor(() => {
       expect(mockHttpClient.patch).toHaveBeenCalledWith('http://localhost:5000/jobs/3/activate')
@@ -323,7 +298,7 @@ describe('JobManagementPage', () => {
         title: 'Job Activated',
         description: 'Job posting is now active.'
       })
-    }, { timeout: 2000 })
+    })
   })
 
   test('handles delete job action with confirmation', async () => {
@@ -334,7 +309,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
     await user.click(deleteButtons[0])
@@ -354,18 +329,15 @@ describe('JobManagementPage', () => {
   test('handles copy job link', async () => {
     const user = userEvent.setup()
     const mockWriteText = jest.fn()
-    
-    // Mock clipboard properly
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText: mockWriteText },
-      writable: true
+    Object.assign(navigator, {
+      clipboard: { writeText: mockWriteText }
     })
     
     renderJobManagementPage()
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const copyButtons = screen.getAllByRole('button', { name: 'Copy Link' })
     await user.click(copyButtons[0])
@@ -385,23 +357,18 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Select first two jobs
     const checkboxes = screen.getAllByRole('checkbox')
-    await act(async () => {
-      await user.click(checkboxes[0])
-      await user.click(checkboxes[1])
-    })
+    await user.click(checkboxes[0])
+    await user.click(checkboxes[1])
     
     expect(screen.getByText('2 jobs selected')).toBeInTheDocument()
     
-    // Click bulk pause (find the pause button within the bulk actions container)
-    const bulkActionsContainer = screen.getByText('2 jobs selected').parentElement!
-    const bulkPauseButton = within(bulkActionsContainer).getByRole('button', { name: 'Pause' })
-    await act(async () => {
-      await user.click(bulkPauseButton)
-    })
+    // Click bulk pause
+    const bulkPauseButton = screen.getByRole('button', { name: 'Pause' })
+    await user.click(bulkPauseButton)
     
     await waitFor(() => {
       expect(mockHttpClient.post).toHaveBeenCalledWith('http://localhost:5000/jobs/bulk-pause', {
@@ -411,7 +378,7 @@ describe('JobManagementPage', () => {
         title: 'Bulk Action Completed',
         description: 'pause applied to 2 jobs.'
       })
-    }, { timeout: 2000 })
+    })
   })
 
   test('shows error for bulk action without selected jobs', async () => {
@@ -421,7 +388,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Try bulk action without selecting jobs - should not show bulk actions
     expect(screen.queryByText('jobs selected')).not.toBeInTheDocument()
@@ -437,14 +404,10 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
-    // Find the individual pause button (not the bulk action one)
-    const pauseButtons = screen.getAllByRole('button', { name: 'Pause' })
-    const individualPauseButton = pauseButtons.find(button => 
-      !button.closest('[class*="bg-blue-50"]') // Not in bulk actions container
-    ) || pauseButtons[0]
-    await user.click(individualPauseButton)
+    const pauseButton = screen.getByRole('button', { name: 'Pause' })
+    await user.click(pauseButton)
     
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
@@ -452,7 +415,7 @@ describe('JobManagementPage', () => {
         description: 'Server error',
         variant: 'destructive'
       })
-    }, { timeout: 2000 })
+    })
   })
 
   test('handles refresh button', async () => {
@@ -467,7 +430,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Job Management')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const refreshButton = screen.getByRole('button', { name: '' }) // Refresh icon button
     await user.click(refreshButton)
@@ -481,7 +444,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Search for non-existent job
     const searchInput = screen.getByPlaceholderText('Search jobs by title, department, or location...')
@@ -495,19 +458,18 @@ describe('JobManagementPage', () => {
     renderJobManagementPage()
     
     await waitFor(() => {
-      expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
       expect(screen.getByText('Featured')).toBeInTheDocument()
-    }, { timeout: 3000 })
+    })
   })
 
   test('calculates and displays performance metrics correctly', async () => {
     renderJobManagementPage()
     
     await waitFor(() => {
-      // Check conversion rate calculation (rates are formatted to 1 decimal place)
-      expect(screen.getByText(/3\.8%/)).toBeInTheDocument() // 47/1234 * 100 = 3.8%
-      expect(screen.getByText(/4\.1%/)).toBeInTheDocument() // 23/567 * 100 = 4.1%
-    }, { timeout: 2000 })
+      // Check conversion rate calculation
+      expect(screen.getByText('3.8%')).toBeInTheDocument() // 47/1234 * 100 = 3.8%
+      expect(screen.getByText('4.1%')).toBeInTheDocument() // 23/567 * 100 = 4.1%
+    })
   })
 
   test('handles delete action cancellation', async () => {
@@ -518,7 +480,7 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete' })
     await user.click(deleteButtons[0])
@@ -535,20 +497,14 @@ describe('JobManagementPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText('Senior Software Engineer')).toBeInTheDocument()
-    }, { timeout: 2000 })
+    })
 
     // Select a job and try bulk action
     const checkboxes = screen.getAllByRole('checkbox')
-    await act(async () => {
-      await user.click(checkboxes[0])
-    })
+    await user.click(checkboxes[0])
     
-    // Find the pause button within the bulk actions container to avoid ambiguity
-    const bulkActionsContainer = screen.getByText('1 job selected').parentElement!
-    const bulkPauseButton = within(bulkActionsContainer).getByRole('button', { name: 'Pause' })
-    await act(async () => {
-      await user.click(bulkPauseButton)
-    })
+    const bulkPauseButton = screen.getByRole('button', { name: 'Pause' })
+    await user.click(bulkPauseButton)
     
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
@@ -556,6 +512,6 @@ describe('JobManagementPage', () => {
         description: 'Failed to perform bulk action. Please try again.',
         variant: 'destructive'
       })
-    }, { timeout: 2000 })
+    })
   })
 })

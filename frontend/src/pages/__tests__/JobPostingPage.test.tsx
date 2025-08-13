@@ -337,7 +337,7 @@ describe('JobPostingPage', () => {
     const mockNoUser = require('../../stores/useAuthStore')
     mockNoUser.default = () => ({ user: null })
     
-    const { JobPostingPage: NoUserPage } = require('../JobPostingPage')
+    const NoUserPage = require('../JobPostingPage').default
     
     render(
       <BrowserRouter>

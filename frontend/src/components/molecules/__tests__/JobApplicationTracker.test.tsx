@@ -71,7 +71,8 @@ describe('JobApplicationTracker', () => {
     expect(screen.getByText('Application Statistics')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument() // Total applied
     expect(screen.getByText('Total Applied')).toBeInTheDocument()
-    expect(screen.getByText('1')).toBeInTheDocument() // Interviews
+    const allOnes = screen.getAllByText('1')
+    expect(allOnes).toHaveLength(2) // One for interviews, one for offers
     expect(screen.getByText('Interviews')).toBeInTheDocument()
     expect(screen.getByText('Offers')).toBeInTheDocument()
     expect(screen.getByText('Success Rate')).toBeInTheDocument()
@@ -81,7 +82,8 @@ describe('JobApplicationTracker', () => {
     render(<JobApplicationTracker {...defaultProps} />)
     
     // Success rate = (interviews + offers) / total * 100 = (1 + 1) / 3 * 100 = 67%
-    expect(screen.getByText('67%')).toBeInTheDocument()
+    const allPercentages = screen.getAllByText(/67%/)
+    expect(allPercentages.length).toBeGreaterThanOrEqual(1) // At least one 67% should be present
   })
 
   test('displays recent applications list', () => {

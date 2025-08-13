@@ -16,7 +16,11 @@
       "Bash(pip install:*)",
       "Bash(timeout:*)",
       "Bash(npm install:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npx jest:*)",
+      "Bash(sed:*)",
+      "Bash(git checkout:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
