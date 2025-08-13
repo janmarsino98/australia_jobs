@@ -1,12 +1,13 @@
 """
-Resume Parser and Text Extraction System
-Handles PDF resume parsing, text extraction, and structured data extraction
+Resume Parser and Text Extraction System with Gemini AI
+Handles PDF resume parsing, text extraction, and AI-powered structured data extraction
 """
 import os
 import re
 import io
 import PyPDF2
 import pdfplumber
+import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import requests
@@ -14,11 +15,21 @@ import tempfile
 from extensions import mongo
 from flask_pymongo import ObjectId
 import gridfs
+import google.generativeai as genai
 
 # Database collections
 resumes_db = mongo.db.resumes
 resume_analysis_db = mongo.db.resume_analysis
 fs = gridfs.GridFS(mongo.db)
+
+# Configure Gemini API
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel('gemini-2.5-flash')
+else:
+    model = None
+    print("Warning: GEMINI_API_KEY not found. Falling back to regex parsing.")
 
 class ResumeParsingError(Exception):
     """Resume parsing error"""
@@ -62,226 +73,164 @@ def extract_text_from_pdf(pdf_content: bytes) -> str:
     
     return text.strip()
 
-def extract_email_addresses(text: str) -> List[str]:
-    """Extract email addresses from text"""
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    emails = re.findall(email_pattern, text, re.IGNORECASE)
-    return list(set(emails))  # Remove duplicates
-
-def extract_phone_numbers(text: str) -> List[str]:
-    """Extract phone numbers from text"""
-    # Australian phone number patterns
-    phone_patterns = [
-        r'\+61\s?\d{1}\s?\d{4}\s?\d{4}',  # +61 x xxxx xxxx
-        r'\(0\d\)\s?\d{4}\s?\d{4}',       # (0x) xxxx xxxx
-        r'0\d\s?\d{4}\s?\d{4}',           # 0x xxxx xxxx
-        r'\d{4}\s?\d{3}\s?\d{3}',         # xxxx xxx xxx
-        r'\d{10}',                        # xxxxxxxxxx
-    ]
+def extract_resume_data_with_gemini(text: str) -> Dict:
+    """Extract structured resume data using Gemini AI"""
+    if not model:
+        # Fallback to regex parsing if Gemini is not available
+        return extract_resume_data_with_regex(text)
     
+    try:
+        prompt = f"""
+You are a professional resume parser. Extract structured information from the following resume text.
+
+Return the data in this exact JSON format:
+{{
+    "contact_info": {{
+        "name": "Full name of the person (if found)",
+        "emails": ["email1@example.com", "email2@example.com"],
+        "phones": ["+61234567890", "0412345678"],
+        "linkedin_urls": ["https://linkedin.com/in/username"],
+        "websites": ["https://personalwebsite.com"],
+        "location": "City, State/Country"
+    }},
+    "education": [
+        {{
+            "institution": "University/School name",
+            "degree": "Degree type (Bachelor, Master, PhD, Diploma, Certificate)",
+            "field": "Field of study",
+            "year": "Graduation year",
+            "raw_text": "Original text from resume"
+        }}
+    ],
+    "work_experience": [
+        {{
+            "title": "Job title",
+            "company": "Company name",
+            "duration": "Employment duration",
+            "start_date": "Start date",
+            "end_date": "End date or 'Present'",
+            "description": "Job description/responsibilities",
+            "raw_text": "Original text from resume"
+        }}
+    ],
+    "skills": ["skill1", "skill2", "skill3"],
+    "certifications": ["certification1", "certification2"],
+    "summary": "Professional summary or objective (if present)",
+    "projects": [
+        {{
+            "name": "Project name",
+            "description": "Project description",
+            "technologies": ["tech1", "tech2"]
+        }}
+    ]
+}}
+
+Important guidelines:
+- Extract only information that is clearly present in the text
+- Use null or empty arrays for missing information
+- Pay special attention to Australian phone number formats (+61, 04xx, etc.)
+- Look for Australian universities and institutions
+- Extract all technical and soft skills mentioned
+- Preserve original formatting in raw_text fields
+- If dates are unclear, extract what's available
+
+Resume text:
+{text}
+"""
+        
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        # Clean the response to extract JSON
+        if result_text.startswith('```json'):
+            result_text = result_text[7:]
+        if result_text.startswith('```'):
+            result_text = result_text[3:]
+        if result_text.endswith('```'):
+            result_text = result_text[:-3]
+        
+        parsed_data = json.loads(result_text)
+        
+        # Validate and clean the parsed data
+        validated_data = {
+            'contact_info': parsed_data.get('contact_info', {}),
+            'education': parsed_data.get('education', []),
+            'work_experience': parsed_data.get('work_experience', []),
+            'skills': parsed_data.get('skills', []),
+            'certifications': parsed_data.get('certifications', []),
+            'summary': parsed_data.get('summary'),
+            'projects': parsed_data.get('projects', [])
+        }
+        
+        return validated_data
+        
+    except Exception as e:
+        print(f"Gemini extraction failed: {e}")
+        # Fallback to regex parsing
+        return extract_resume_data_with_regex(text)
+
+def extract_resume_data_with_regex(text: str) -> Dict:
+    """Fallback regex-based extraction method"""
+    # Email extraction
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    emails = list(set(re.findall(email_pattern, text, re.IGNORECASE)))
+    
+    # Phone extraction (Australian patterns)
+    phone_patterns = [
+        r'\+61\s?\d{1}\s?\d{4}\s?\d{4}',
+        r'\(0\d\)\s?\d{4}\s?\d{4}',
+        r'0\d\s?\d{4}\s?\d{4}',
+        r'\d{4}\s?\d{3}\s?\d{3}',
+        r'\d{10}'
+    ]
     phones = []
     for pattern in phone_patterns:
-        matches = re.findall(pattern, text)
-        phones.extend(matches)
+        phones.extend(re.findall(pattern, text))
+    phones = list(set(phones))
     
-    return list(set(phones))  # Remove duplicates
-
-def extract_linkedin_urls(text: str) -> List[str]:
-    """Extract LinkedIn URLs from text"""
+    # LinkedIn URLs
     linkedin_pattern = r'https?://(?:www\.)?linkedin\.com/in/[\w-]+/?'
-    urls = re.findall(linkedin_pattern, text, re.IGNORECASE)
-    return list(set(urls))
-
-def extract_websites(text: str) -> List[str]:
-    """Extract website URLs from text"""
+    linkedin_urls = list(set(re.findall(linkedin_pattern, text, re.IGNORECASE)))
+    
+    # Website URLs (excluding social media)
     url_pattern = r'https?://(?:[-\w.])+(?:[:\d]+)?(?:/(?:[\w/_.])*(?:\?(?:[\w&=%.])*)?(?:\#(?:[\w.])*)?)?'
-    urls = re.findall(url_pattern, text, re.IGNORECASE)
-    
-    # Filter out common non-personal websites
-    filtered_urls = []
-    for url in urls:
+    all_urls = re.findall(url_pattern, text, re.IGNORECASE)
+    websites = []
+    for url in all_urls:
         if not any(domain in url.lower() for domain in ['linkedin.com', 'facebook.com', 'twitter.com', 'instagram.com']):
-            filtered_urls.append(url)
+            websites.append(url)
+    websites = list(set(websites))
     
-    return list(set(filtered_urls))
-
-def extract_education(text: str) -> List[Dict]:
-    """Extract education information from text"""
-    education_keywords = [
-        'university', 'college', 'bachelor', 'master', 'phd', 'degree',
-        'diploma', 'certificate', 'graduate', 'undergraduate', 'mba',
-        'bsc', 'ba', 'msc', 'ma', 'btec', 'tafe'
-    ]
-    
-    # Common Australian universities
-    australian_unis = [
-        'university of melbourne', 'university of sydney', 'australian national university',
-        'university of queensland', 'university of new south wales', 'monash university',
-        'university of western australia', 'university of adelaide', 'macquarie university',
-        'griffith university', 'deakin university', 'rmit university', 'uts',
-        'university of technology sydney', 'curtin university', 'swinburne university'
-    ]
-    
-    education_entries = []
-    lines = text.split('\n')
-    
-    for i, line in enumerate(lines):
-        line_lower = line.lower().strip()
-        
-        # Check if line contains education keywords
-        if any(keyword in line_lower for keyword in education_keywords):
-            education_entry = {
-                'raw_text': line.strip(),
-                'institution': None,
-                'degree': None,
-                'field': None,
-                'year': None
-            }
-            
-            # Extract year
-            year_match = re.search(r'\b(19|20)\d{2}\b', line)
-            if year_match:
-                education_entry['year'] = year_match.group()
-            
-            # Check for Australian universities
-            for uni in australian_unis:
-                if uni in line_lower:
-                    education_entry['institution'] = uni.title()
-                    break
-            
-            # Extract degree type
-            degree_patterns = {
-                'bachelor': r'\b(?:bachelor|ba|bs|bsc|beng|bcom|bbus)\b',
-                'master': r'\b(?:master|ma|ms|msc|meng|mcom|mba)\b',
-                'phd': r'\b(?:phd|doctorate|ph\.d)\b',
-                'diploma': r'\b(?:diploma|dip)\b',
-                'certificate': r'\b(?:certificate|cert)\b'
-            }
-            
-            for degree_type, pattern in degree_patterns.items():
-                if re.search(pattern, line_lower):
-                    education_entry['degree'] = degree_type.title()
-                    break
-            
-            education_entries.append(education_entry)
-    
-    return education_entries
-
-def extract_work_experience(text: str) -> List[Dict]:
-    """Extract work experience from text"""
-    experience_keywords = [
-        'experience', 'employment', 'work history', 'career', 'professional',
-        'positions', 'roles', 'worked at', 'employed', 'job'
-    ]
-    
-    # Common job titles
-    job_titles = [
-        'manager', 'director', 'analyst', 'developer', 'engineer', 'consultant',
-        'specialist', 'coordinator', 'administrator', 'assistant', 'officer',
-        'supervisor', 'lead', 'senior', 'junior', 'intern', 'graduate'
-    ]
-    
-    experience_entries = []
-    lines = text.split('\n')
-    
-    for i, line in enumerate(lines):
-        line_lower = line.lower().strip()
-        
-        # Check if line contains job titles or experience keywords
-        if any(title in line_lower for title in job_titles) or any(keyword in line_lower for keyword in experience_keywords):
-            experience_entry = {
-                'raw_text': line.strip(),
-                'title': None,
-                'company': None,
-                'duration': None,
-                'years': []
-            }
-            
-            # Extract years
-            year_matches = re.findall(r'\b(19|20)\d{2}\b', line)
-            if year_matches:
-                experience_entry['years'] = year_matches
-            
-            # Extract duration patterns (e.g., "2019-2021", "Jan 2020 - Dec 2021")
-            duration_patterns = [
-                r'\b(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}\b',
-                r'\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(19|20)\d{2}\s*[-–]\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*(19|20)\d{2}\b'
-            ]
-            
-            for pattern in duration_patterns:
-                match = re.search(pattern, line_lower)
-                if match:
-                    experience_entry['duration'] = match.group()
-                    break
-            
-            # Try to identify job title (usually the first part before company name)
-            for title in job_titles:
-                if title in line_lower:
-                    # Find the context around the title
-                    title_match = re.search(rf'\b{re.escape(title)}\b', line, re.IGNORECASE)
-                    if title_match:
-                        start = max(0, title_match.start() - 20)
-                        end = min(len(line), title_match.end() + 20)
-                        experience_entry['title'] = line[start:end].strip()
-                        break
-            
-            experience_entries.append(experience_entry)
-    
-    return experience_entries
-
-def extract_skills(text: str) -> List[str]:
-    """Extract skills from resume text"""
-    # Common technical skills
-    tech_skills = [
+    # Basic skills extraction
+    common_skills = [
         'python', 'java', 'javascript', 'react', 'nodejs', 'html', 'css', 'sql',
         'mongodb', 'postgresql', 'mysql', 'aws', 'azure', 'docker', 'kubernetes',
-        'git', 'linux', 'windows', 'api', 'rest', 'json', 'xml', 'agile', 'scrum',
-        'django', 'flask', 'spring', 'angular', 'vue', 'typescript', 'php', 'ruby',
-        'golang', 'rust', 'scala', 'kotlin', 'swift', 'objective-c', 'c++', 'c#',
-        'terraform', 'ansible', 'jenkins', 'gitlab', 'github', 'jira', 'confluence'
+        'git', 'project management', 'leadership', 'communication', 'teamwork'
     ]
-    
-    # Business skills
-    business_skills = [
-        'project management', 'leadership', 'communication', 'teamwork', 'problem solving',
-        'analytical', 'strategic planning', 'budget management', 'stakeholder management',
-        'risk management', 'quality assurance', 'process improvement', 'training',
-        'mentoring', 'negotiation', 'presentation', 'customer service', 'sales',
-        'marketing', 'business analysis', 'data analysis', 'reporting'
-    ]
-    
-    all_skills = tech_skills + business_skills
     found_skills = []
     text_lower = text.lower()
-    
-    for skill in all_skills:
+    for skill in common_skills:
         if skill.lower() in text_lower:
             found_skills.append(skill.title())
     
-    # Look for skills in dedicated skills sections
-    skills_section_patterns = [
-        r'skills?\s*:?\s*(.+?)(?:\n\n|\n[A-Z]|\n\s*$)',
-        r'technical skills?\s*:?\s*(.+?)(?:\n\n|\n[A-Z]|\n\s*$)',
-        r'competencies\s*:?\s*(.+?)(?:\n\n|\n[A-Z]|\n\s*$)'
-    ]
-    
-    for pattern in skills_section_patterns:
-        matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
-        for match in matches:
-            # Split by common delimiters
-            skills_text = match.replace('•', ',').replace('|', ',').replace(';', ',')
-            potential_skills = [skill.strip() for skill in skills_text.split(',')]
-            
-            for skill in potential_skills:
-                skill = skill.strip()
-                if len(skill) > 1 and len(skill) < 50:  # Reasonable skill length
-                    found_skills.append(skill.title())
-    
-    return list(set(found_skills))  # Remove duplicates
+    return {
+        'contact_info': {
+            'emails': emails,
+            'phones': phones,
+            'linkedin_urls': linkedin_urls,
+            'websites': websites
+        },
+        'education': [],  # Simplified for fallback
+        'work_experience': [],  # Simplified for fallback
+        'skills': found_skills,
+        'certifications': [],
+        'summary': None,
+        'projects': []
+    }
 
 def parse_resume_content(pdf_content: bytes) -> Dict:
     """
-    Parse resume content and extract structured information
+    Parse resume content and extract structured information using Gemini AI
     
     Args:
         pdf_content: PDF file content as bytes
@@ -293,23 +242,25 @@ def parse_resume_content(pdf_content: bytes) -> Dict:
         # Extract raw text
         raw_text = extract_text_from_pdf(pdf_content)
         
-        # Extract structured information
+        # Extract structured information using Gemini AI
+        gemini_data = extract_resume_data_with_gemini(raw_text)
+        
+        # Combine with raw text and metadata
         parsed_data = {
             'raw_text': raw_text,
-            'contact_info': {
-                'emails': extract_email_addresses(raw_text),
-                'phones': extract_phone_numbers(raw_text),
-                'linkedin_urls': extract_linkedin_urls(raw_text),
-                'websites': extract_websites(raw_text)
-            },
-            'education': extract_education(raw_text),
-            'work_experience': extract_work_experience(raw_text),
-            'skills': extract_skills(raw_text),
+            'contact_info': gemini_data.get('contact_info', {}),
+            'education': gemini_data.get('education', []),
+            'work_experience': gemini_data.get('work_experience', []),
+            'skills': gemini_data.get('skills', []),
+            'certifications': gemini_data.get('certifications', []),
+            'summary': gemini_data.get('summary'),
+            'projects': gemini_data.get('projects', []),
             'parsing_metadata': {
                 'parsed_at': datetime.utcnow(),
                 'text_length': len(raw_text),
                 'word_count': len(raw_text.split()),
-                'line_count': len(raw_text.split('\n'))
+                'line_count': len(raw_text.split('\n')),
+                'parsing_method': 'gemini_ai' if model else 'regex_fallback'
             }
         }
         
@@ -425,96 +376,77 @@ def get_parsed_resume(user_id: str, file_id: str = None) -> Optional[Dict]:
 
 def analyze_resume_completeness(parsed_data: Dict) -> Dict:
     """
-    Analyze resume completeness and provide recommendations
+    Analyze resume completeness and provide recommendations using Gemini AI analysis
     
     Args:
-        parsed_data: Parsed resume data
+        parsed_data: Parsed resume data from Gemini
     
     Returns:
         Dictionary with completeness analysis
     """
     try:
-        completeness_score = 0
-        total_criteria = 0
-        missing_sections = []
-        recommendations = []
+        if not model:
+            return analyze_resume_completeness_traditional(parsed_data)
         
-        # Check contact information
-        contact_info = parsed_data.get('contact_info', {})
-        if contact_info.get('emails'):
-            completeness_score += 15
-        else:
-            missing_sections.append('Email address')
-            recommendations.append('Add a professional email address')
-        total_criteria += 15
+        # Use Gemini for intelligent completeness analysis
+        resume_text = parsed_data.get('raw_text', '')
         
-        if contact_info.get('phones'):
-            completeness_score += 10
-        else:
-            missing_sections.append('Phone number')
-            recommendations.append('Add a contact phone number')
-        total_criteria += 10
+        prompt = f"""
+You are a professional resume consultant. Analyze this resume for completeness and provide recommendations.
+
+Resume content:
+{resume_text}
+
+Provide analysis in this JSON format:
+{{
+    "completeness_score": 85,
+    "total_possible": 100,
+    "percentage": 85.0,
+    "rating": "Good|Fair|Excellent|Needs Improvement",
+    "missing_sections": ["section1", "section2"],
+    "recommendations": ["recommendation1", "recommendation2"],
+    "strengths": ["strength1", "strength2"],
+    "ats_compatibility": {{
+        "score": 80,
+        "issues": ["issue1", "issue2"],
+        "suggestions": ["suggestion1", "suggestion2"]
+    }}
+}}
+
+Evaluation criteria:
+- Contact information (email, phone) - 25 points
+- Professional summary/objective - 15 points  
+- Work experience with details - 30 points
+- Education background - 15 points
+- Skills section - 10 points
+- Additional sections (certifications, projects, etc.) - 5 points
+
+Consider:
+- Clarity and organization
+- Relevant keywords for ATS systems
+- Quantified achievements
+- Professional formatting
+- Industry-specific requirements for Australian job market
+"""
         
-        # Check education section
-        education = parsed_data.get('education', [])
-        if education:
-            completeness_score += 20
-        else:
-            missing_sections.append('Education')
-            recommendations.append('Add education background')
-        total_criteria += 20
-        
-        # Check work experience
-        work_experience = parsed_data.get('work_experience', [])
-        if work_experience:
-            completeness_score += 25
-            if len(work_experience) >= 2:
-                completeness_score += 5  # Bonus for multiple experiences
-        else:
-            missing_sections.append('Work experience')
-            recommendations.append('Add work experience details')
-        total_criteria += 25
-        
-        # Check skills section
-        skills = parsed_data.get('skills', [])
-        if skills:
-            completeness_score += 20
-            if len(skills) >= 5:
-                completeness_score += 5  # Bonus for comprehensive skills list
-        else:
-            missing_sections.append('Skills')
-            recommendations.append('Add relevant skills')
-        total_criteria += 20
-        
-        # Check LinkedIn profile
-        if contact_info.get('linkedin_urls'):
-            completeness_score += 10
-        else:
-            missing_sections.append('LinkedIn profile')
-            recommendations.append('Add LinkedIn profile URL')
-        total_criteria += 10
-        
-        # Calculate percentage
-        completeness_percentage = (completeness_score / total_criteria) * 100 if total_criteria > 0 else 0
-        
-        # Determine rating
-        if completeness_percentage >= 90:
-            rating = 'Excellent'
-        elif completeness_percentage >= 75:
-            rating = 'Good'
-        elif completeness_percentage >= 60:
-            rating = 'Fair'
-        else:
-            rating = 'Needs Improvement'
-        
-        return {
-            'completeness_score': completeness_score,
-            'total_possible': total_criteria,
-            'percentage': round(completeness_percentage, 1),
-            'rating': rating,
-            'missing_sections': missing_sections,
-            'recommendations': recommendations
-        }
+        try:
+            response = model.generate_content(prompt)
+            result_text = response.text.strip()
+            
+            # Clean the response
+            if result_text.startswith('```json'):
+                result_text = result_text[7:]
+            if result_text.startswith('```'):
+                result_text = result_text[3:]
+            if result_text.endswith('```'):
+                result_text = result_text[:-3]
+            
+            analysis = json.loads(result_text)
+            return analysis
+            
+        except Exception as e:
+            print(f"Gemini completeness analysis failed: {e}")
+            return analyze_resume_completeness_traditional(parsed_data)
         
     except Exception as e:
         print(f"Error analyzing resume completeness: {e}")
@@ -522,3 +454,89 @@ def analyze_resume_completeness(parsed_data: Dict) -> Dict:
             'error': 'Failed to analyze resume completeness',
             'percentage': 0
         }
+
+def analyze_resume_completeness_traditional(parsed_data: Dict) -> Dict:
+    """
+    Traditional completeness analysis as fallback
+    """
+    completeness_score = 0
+    total_criteria = 0
+    missing_sections = []
+    recommendations = []
+    
+    # Check contact information
+    contact_info = parsed_data.get('contact_info', {})
+    if contact_info.get('emails'):
+        completeness_score += 15
+    else:
+        missing_sections.append('Email address')
+        recommendations.append('Add a professional email address')
+    total_criteria += 15
+    
+    if contact_info.get('phones'):
+        completeness_score += 10
+    else:
+        missing_sections.append('Phone number')
+        recommendations.append('Add a contact phone number')
+    total_criteria += 10
+    
+    # Check education section
+    education = parsed_data.get('education', [])
+    if education:
+        completeness_score += 20
+    else:
+        missing_sections.append('Education')
+        recommendations.append('Add education background')
+    total_criteria += 20
+    
+    # Check work experience
+    work_experience = parsed_data.get('work_experience', [])
+    if work_experience:
+        completeness_score += 25
+        if len(work_experience) >= 2:
+            completeness_score += 5  # Bonus for multiple experiences
+    else:
+        missing_sections.append('Work experience')
+        recommendations.append('Add work experience details')
+    total_criteria += 25
+    
+    # Check skills section
+    skills = parsed_data.get('skills', [])
+    if skills:
+        completeness_score += 20
+        if len(skills) >= 5:
+            completeness_score += 5  # Bonus for comprehensive skills list
+    else:
+        missing_sections.append('Skills')
+        recommendations.append('Add relevant skills')
+    total_criteria += 20
+    
+    # Check LinkedIn profile
+    if contact_info.get('linkedin_urls'):
+        completeness_score += 10
+    else:
+        missing_sections.append('LinkedIn profile')
+        recommendations.append('Add LinkedIn profile URL')
+    total_criteria += 10
+    
+    # Calculate percentage
+    completeness_percentage = (completeness_score / total_criteria) * 100 if total_criteria > 0 else 0
+    
+    # Determine rating
+    if completeness_percentage >= 90:
+        rating = 'Excellent'
+    elif completeness_percentage >= 75:
+        rating = 'Good'
+    elif completeness_percentage >= 60:
+        rating = 'Fair'
+    else:
+        rating = 'Needs Improvement'
+    
+    return {
+        'completeness_score': completeness_score,
+        'total_possible': total_criteria,
+        'percentage': round(completeness_percentage, 1),
+        'rating': rating,
+        'missing_sections': missing_sections,
+        'recommendations': recommendations
+    }

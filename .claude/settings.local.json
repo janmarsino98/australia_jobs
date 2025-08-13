@@ -21,7 +21,8 @@
       "Bash(sed:*)",
       "Bash(git checkout:*)",
       "Bash(node:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "WebFetch(domain:ai.google.dev)"
     ],
     "deny": []
   }

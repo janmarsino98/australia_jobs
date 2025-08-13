@@ -2,6 +2,7 @@ from flask import Blueprint, request, current_app, send_file, session, jsonify
 from extensions import mongo, fs
 from werkzeug.utils import secure_filename
 from bson.objectid import ObjectId
+from datetime import datetime
 import gridfs
 import io
 
@@ -279,7 +280,7 @@ def analyze_current_resume():
         # Analyze completeness
         completeness_analysis = analyze_resume_completeness(parsed_data)
         
-        # Prepare response data
+        # Prepare response data with enhanced Gemini structure
         analysis_response = {
             "analysis_id": analysis_id,
             "file_id": str(user_resume_id),
@@ -290,8 +291,12 @@ def analyze_current_resume():
                 "experience_count": len(parsed_data.get("work_experience", [])),
                 "skills_count": len(parsed_data.get("skills", [])),
                 "skills": parsed_data.get("skills", [])[:20],  # Limit for response size
+                "certifications": parsed_data.get("certifications", []),
+                "summary": parsed_data.get("summary"),
+                "projects_count": len(parsed_data.get("projects", [])),
                 "text_length": parsed_data.get("parsing_metadata", {}).get("text_length", 0),
-                "word_count": parsed_data.get("parsing_metadata", {}).get("word_count", 0)
+                "word_count": parsed_data.get("parsing_metadata", {}).get("word_count", 0),
+                "parsing_method": parsed_data.get("parsing_metadata", {}).get("parsing_method", "unknown")
             },
             "completeness_analysis": completeness_analysis,
             "analyzed_at": parsed_data.get("parsing_metadata", {}).get("parsed_at")

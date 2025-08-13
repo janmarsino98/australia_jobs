@@ -19,6 +19,7 @@ pdfplumber==0.11.0
 pdfminer.six==20231228
 openai==1.40.6
 anthropic==0.34.2
+google-generativeai==0.8.3
 python-dotenv==1.0.1
 python-slugify==8.0.4
 email-validator==2.2.0
