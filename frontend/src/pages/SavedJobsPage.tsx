@@ -38,6 +38,7 @@ const SavedJobsPage = () => {
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesInput, setNotesInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
   
   // Filter jobs based on search query and status
   const displayJobs = filteredJobs.filter(job => {
@@ -45,14 +46,36 @@ const SavedJobsPage = () => {
     return job.status === statusFilter;
   });
 
-  // Update filtered jobs when search query changes
+  // Update filtered jobs when search query changes and cleanup
   useEffect(() => {
     // The store handles filtering automatically
+    return () => {
+      // Cleanup function to prevent memory leaks
+      setError(null);
+      setEditingNotes(null);
+      setNotesInput('');
+    };
   }, [searchQuery, savedJobs]);
 
-  const handleRemoveJob = (jobId: string) => {
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (editingNotes) {
+        setEditingNotes(null);
+        setNotesInput('');
+      }
+    };
+  }, [editingNotes]);
+
+  const handleRemoveJob = async (jobId: string) => {
     if (window.confirm('Are you sure you want to remove this job from your saved list?')) {
-      removeJob(jobId);
+      try {
+        removeJob(jobId);
+        setError(null);
+      } catch (err) {
+        setError('Failed to remove job. Please try again.');
+        console.error('Remove job error:', err);
+      }
     }
   };
 
@@ -61,21 +84,40 @@ const SavedJobsPage = () => {
     setShowApplicationModal(true);
   };
 
-  const handleStatusChange = (jobId: string, status: SavedJob['status']) => {
-    updateJobStatus(jobId, status);
+  const handleStatusChange = async (jobId: string, status: SavedJob['status']) => {
+    try {
+      updateJobStatus(jobId, status);
+      setError(null);
+    } catch (err) {
+      setError('Failed to update job status. Please try again.');
+      console.error('Status update error:', err);
+    }
   };
 
   const handleExportJobs = () => {
-    const jsonData = exportSavedJobs();
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `saved-jobs-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      const jsonData = exportSavedJobs();
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link element for download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `saved-jobs-${new Date().toISOString().split('T')[0]}.json`;
+      link.style.display = 'none';
+      
+      // Append, click, and cleanup immediately
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup with proper timing
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
   };
 
   const handleViewJob = (job: SavedJob) => {
@@ -87,10 +129,16 @@ const SavedJobsPage = () => {
     setNotesInput(job.notes || '');
   };
 
-  const saveNotes = (jobId: string) => {
-    updateJobNotes(jobId, notesInput);
-    setEditingNotes(null);
-    setNotesInput('');
+  const saveNotes = async (jobId: string) => {
+    try {
+      updateJobNotes(jobId, notesInput);
+      setEditingNotes(null);
+      setNotesInput('');
+      setError(null);
+    } catch (err) {
+      setError('Failed to save notes. Please try again.');
+      console.error('Save notes error:', err);
+    }
   };
 
   const cancelEditingNotes = () => {
@@ -131,6 +179,17 @@ const SavedJobsPage = () => {
           <p className="text-gray-600">
             {savedJobs.length} job{savedJobs.length !== 1 ? 's' : ''} saved
           </p>
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-2 text-xs text-red-500 hover:text-red-700"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -187,8 +246,8 @@ const SavedJobsPage = () => {
           </Card>
         ) : (
           <div className="space-y-4">
-            {displayJobs.map((job) => (
-              <Card key={job._id} className="hover:shadow-md transition-shadow">
+            {displayJobs.map((job, index) => (
+              <Card key={`${job._id}-${index}`} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -263,8 +322,9 @@ const SavedJobsPage = () => {
                             value={notesInput}
                             onChange={(e) => setNotesInput(e.target.value)}
                             placeholder="Add your notes about this job..."
-                            className="w-full p-2 border rounded-md text-sm"
+                            className="w-full p-2 border rounded-md text-sm resize-none"
                             rows={3}
+                            maxLength={500}
                           />
                           <div className="flex gap-2">
                             <Button size="sm" onClick={() => saveNotes(job._id)}>
@@ -304,6 +364,7 @@ const SavedJobsPage = () => {
                         <Select 
                           value={job.status || 'saved'} 
                           onValueChange={(value) => handleStatusChange(job._id, value as SavedJob['status'])}
+                          disabled={false}
                         >
                           <SelectTrigger className="w-32 h-8">
                             <SelectValue />
@@ -348,6 +409,7 @@ const SavedJobsPage = () => {
           onClose={() => {
             setShowApplicationModal(false);
             setSelectedJob(null);
+            setError(null);
           }}
         />
       )}

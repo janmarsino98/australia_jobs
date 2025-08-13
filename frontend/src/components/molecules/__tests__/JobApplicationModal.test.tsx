@@ -308,7 +308,7 @@ describe('JobApplicationModal', () => {
 
   test('shows different message when no existing resume', async () => {
     // Mock no existing resume
-    ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('No resume found'))
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('No resume found'))
     
     renderModal()
     

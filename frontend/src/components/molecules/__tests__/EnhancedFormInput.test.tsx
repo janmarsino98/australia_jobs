@@ -151,7 +151,7 @@ describe('EnhancedFormInput', () => {
       });
       
       // Initially no interaction, should be gray
-      let iconContainer = container.querySelector('.text-gray-500');
+      const iconContainer = container.querySelector('.text-gray-500');
       expect(iconContainer).toBeInTheDocument();
       
       // With error after interaction

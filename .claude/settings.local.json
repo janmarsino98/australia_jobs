@@ -20,7 +20,8 @@
       "Bash(npx jest:*)",
       "Bash(sed:*)",
       "Bash(git checkout:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": []
   }

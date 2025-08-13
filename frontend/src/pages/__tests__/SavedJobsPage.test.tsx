@@ -1,9 +1,38 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import React from 'react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'
 import SavedJobsPage from '../SavedJobsPage'
 import { SavedJob } from '../../stores/useSavedJobsStore'
+import { render as rtlRender } from '@testing-library/react'
+
+// Force legacy render mode by importing ReactDOM directly
+import ReactDOM from 'react-dom'
+
+// Create a custom render function that uses legacy ReactDOM
+const render = (component: React.ReactElement, options?: any) => {
+  const container = options?.container || document.createElement('div')
+  if (!options?.container) {
+    document.body.appendChild(container)
+  }
+  
+  // Use legacy ReactDOM.render instead of createRoot
+  ReactDOM.render(component, container)
+  
+  return {
+    container,
+    rerender: (newComponent: React.ReactElement) => {
+      ReactDOM.render(newComponent, container)
+    },
+    unmount: () => {
+      ReactDOM.unmountComponentAtNode(container)
+      if (container.parentNode) {
+        container.parentNode.removeChild(container)
+      }
+    }
+  }
+}
 
 // Mock dependencies
 jest.mock('react-router-dom', () => ({
@@ -11,49 +40,56 @@ jest.mock('react-router-dom', () => ({
   useNavigate: jest.fn()
 }))
 
-const mockUseSavedJobsStore = {
-  savedJobs: [
-    {
-      _id: '1',
-      title: 'Senior React Developer',
-      firm: 'TechCorp',
-      location: 'Sydney, NSW',
-      jobtype: 'Full-time',
-      remuneration_amount: '$120,000',
-      remuneration_period: 'year',
-      description: 'We are looking for a talented React developer to join our team.',
-      slug: 'senior-react-developer',
-      savedAt: '2024-02-01T10:00:00Z',
-      status: 'saved' as const,
-      notes: 'Interesting company culture'
-    },
-    {
-      _id: '2',
-      title: 'Frontend Engineer',
-      firm: 'StartupCo',
-      location: 'Melbourne, VIC',
-      jobtype: 'Contract',
-      remuneration_amount: '$85,000',
-      remuneration_period: 'year',
-      slug: 'frontend-engineer',
-      savedAt: '2024-02-02T14:30:00Z',
-      status: 'applied' as const
-    },
-    {
-      _id: '3',
-      title: 'UI/UX Developer',
-      firm: 'DesignHub',
-      location: 'Brisbane, QLD',
-      jobtype: 'Part-time',
-      remuneration_amount: '$60,000',
-      remuneration_period: 'year',
-      slug: 'ui-ux-developer',
-      savedAt: '2024-02-03T09:15:00Z',
-      status: 'interview' as const,
-      notes: 'Great design team'
-    }
-  ] as SavedJob[],
-  filteredJobs: [] as SavedJob[],
+// Create initial mock data that won't be mutated
+const createMockJob = (id: string, overrides: Partial<SavedJob> = {}): SavedJob => ({
+  _id: id,
+  title: `Job ${id}`,
+  firm: `Company ${id}`,
+  location: 'Sydney, NSW',
+  jobtype: 'Full-time',
+  remuneration_amount: '$100,000',
+  remuneration_period: 'year',
+  slug: `job-${id}`,
+  savedAt: '2024-02-01T10:00:00Z',
+  status: 'saved' as const,
+  ...overrides
+})
+
+const initialMockJobs: SavedJob[] = [
+  createMockJob('1', {
+    title: 'Senior React Developer',
+    firm: 'TechCorp',
+    remuneration_amount: '$120,000',
+    description: 'We are looking for a talented React developer to join our team.',
+    slug: 'senior-react-developer',
+    notes: 'Interesting company culture'
+  }),
+  createMockJob('2', {
+    title: 'Frontend Engineer',
+    firm: 'StartupCo',
+    location: 'Melbourne, VIC',
+    jobtype: 'Contract',
+    remuneration_amount: '$85,000',
+    slug: 'frontend-engineer',
+    savedAt: '2024-02-02T14:30:00Z',
+    status: 'applied' as const
+  }),
+  createMockJob('3', {
+    title: 'UI/UX Developer',
+    firm: 'DesignHub',
+    location: 'Brisbane, QLD',
+    jobtype: 'Part-time',
+    remuneration_amount: '$60,000',
+    slug: 'ui-ux-developer',
+    savedAt: '2024-02-03T09:15:00Z',
+    status: 'interview' as const,
+    notes: 'Great design team'
+  })
+]
+
+let mockUseSavedJobsStore = {
+  savedJobs: [...initialMockJobs],
+  filteredJobs: [...initialMockJobs],
   searchQuery: '',
   setSearchQuery: jest.fn(),
   removeJob: jest.fn(),
@@ -64,17 +100,20 @@ const mockUseSavedJobsStore = {
 
 jest.mock('../../stores/useSavedJobsStore', () => ({
   __esModule: true,
-  default: () => mockUseSavedJobsStore
+  default: jest.fn(() => mockUseSavedJobsStore)
 }))
 
 jest.mock('../../components/molecules/JobApplicationModal', () => {
-  return function JobApplicationModal({ isOpen, onClose, job }: any) {
-    return isOpen ? (
-      <div data-testid="job-application-modal">
-        <span>Apply to {job.title}</span>
-        <button onClick={onClose}>Close Modal</button>
-      </div>
-    ) : null
+  return {
+    __esModule: true,
+    default: function JobApplicationModal({ isOpen, onClose, job }: any) {
+      return isOpen ? (
+        <div data-testid="job-application-modal">
+          <span>Apply to {job.title}</span>
+          <button onClick={onClose}>Close Modal</button>
+        </div>
+      ) : null
+    }
   }
 })
 
@@ -86,11 +125,37 @@ Object.assign(window, {
 })
 
 // Mock URL and createElement for export functionality
-Object.assign(window, {
-  URL: {
+Object.defineProperty(window, 'URL', {
+  writable: true,
+  value: {
     createObjectURL: jest.fn(() => 'blob:mock-url'),
     revokeObjectURL: jest.fn()
   }
+})
+
+// Mock document.createElement
+const mockClick = jest.fn()
+const mockAppendChild = jest.fn()
+const mockRemoveChild = jest.fn()
+
+Object.defineProperty(document, 'createElement', {
+  writable: true,
+  value: jest.fn(() => ({
+    href: '',
+    download: '',
+    style: {},
+    click: mockClick
+  }))
+})
+
+Object.defineProperty(document.body, 'appendChild', {
+  writable: true,
+  value: mockAppendChild
+})
+
+Object.defineProperty(document.body, 'removeChild', {
+  writable: true,
+  value: mockRemoveChild
 })
 
 const renderSavedJobsPage = () => {
@@ -106,8 +171,22 @@ describe('SavedJobsPage', () => {
     jest.clearAllMocks()
     ;(require('react-router-dom').useNavigate as jest.Mock).mockReturnValue(mockNavigate)
     
-    // Reset filteredJobs to match savedJobs by default
-    mockUseSavedJobsStore.filteredJobs = [...mockUseSavedJobsStore.savedJobs]
+    // Reset mock store to initial state
+    mockUseSavedJobsStore = {
+      savedJobs: [...initialMockJobs],
+      filteredJobs: [...initialMockJobs],
+      searchQuery: '',
+      setSearchQuery: jest.fn(),
+      removeJob: jest.fn(),
+      updateJobStatus: jest.fn(),
+      updateJobNotes: jest.fn(),
+      exportSavedJobs: jest.fn(() => JSON.stringify([]))
+    }
+    
+    // Reset DOM mocks
+    mockClick.mockClear()
+    mockAppendChild.mockClear()
+    mockRemoveChild.mockClear()
   })
 
   test('renders page header with job count', () => {
@@ -273,22 +352,6 @@ describe('SavedJobsPage', () => {
 
   test('handles export functionality', async () => {
     const user = userEvent.setup()
-    const mockAppendChild = jest.fn()
-    const mockRemoveChild = jest.fn()
-    const mockClick = jest.fn()
-    
-    // Mock document methods and createElement
-    Object.assign(document, {
-      createElement: jest.fn(() => ({
-        href: '',
-        download: '',
-        click: mockClick
-      })),
-      body: {
-        appendChild: mockAppendChild,
-        removeChild: mockRemoveChild
-      }
-    })
     
     renderSavedJobsPage()
     
@@ -296,7 +359,11 @@ describe('SavedJobsPage', () => {
     await user.click(exportButton)
     
     expect(mockUseSavedJobsStore.exportSavedJobs).toHaveBeenCalled()
-    expect(mockClick).toHaveBeenCalled()
+    
+    // Wait for async operations
+    await waitFor(() => {
+      expect(mockClick).toHaveBeenCalled()
+    }, { timeout: 1000 })
   })
 
   test('shows empty state when no saved jobs', () => {
@@ -359,8 +426,11 @@ describe('SavedJobsPage', () => {
   })
 
   test('handles salary without period', () => {
-    mockUseSavedJobsStore.savedJobs[0].remuneration_period = undefined
-    mockUseSavedJobsStore.filteredJobs = [...mockUseSavedJobsStore.savedJobs]
+    const jobsWithoutPeriod = [...mockUseSavedJobsStore.savedJobs]
+    jobsWithoutPeriod[0] = { ...jobsWithoutPeriod[0], remuneration_period: undefined }
+    
+    mockUseSavedJobsStore.savedJobs = jobsWithoutPeriod
+    mockUseSavedJobsStore.filteredJobs = jobsWithoutPeriod
     
     renderSavedJobsPage()
     
@@ -368,8 +438,11 @@ describe('SavedJobsPage', () => {
   })
 
   test('handles missing salary information', () => {
-    mockUseSavedJobsStore.savedJobs[0].remuneration_amount = undefined
-    mockUseSavedJobsStore.filteredJobs = [...mockUseSavedJobsStore.savedJobs]
+    const jobsWithoutSalary = [...mockUseSavedJobsStore.savedJobs]
+    jobsWithoutSalary[0] = { ...jobsWithoutSalary[0], remuneration_amount: undefined }
+    
+    mockUseSavedJobsStore.savedJobs = jobsWithoutSalary
+    mockUseSavedJobsStore.filteredJobs = jobsWithoutSalary
     
     renderSavedJobsPage()
     
@@ -414,8 +487,11 @@ describe('SavedJobsPage', () => {
   })
 
   test('handles job without description', () => {
-    mockUseSavedJobsStore.savedJobs[1].description = undefined
-    mockUseSavedJobsStore.filteredJobs = [...mockUseSavedJobsStore.savedJobs]
+    const jobsWithoutDescription = [...mockUseSavedJobsStore.savedJobs]
+    jobsWithoutDescription[1] = { ...jobsWithoutDescription[1], description: undefined }
+    
+    mockUseSavedJobsStore.savedJobs = jobsWithoutDescription
+    mockUseSavedJobsStore.filteredJobs = jobsWithoutDescription
     
     renderSavedJobsPage()
     
@@ -428,8 +504,9 @@ describe('SavedJobsPage', () => {
     
     expect(screen.getByText('3 jobs saved')).toBeInTheDocument()
     
-    // Simulate removing a job
+    // Simulate removing a job by creating new instance
     mockUseSavedJobsStore.savedJobs = mockUseSavedJobsStore.savedJobs.slice(0, 2)
+    mockUseSavedJobsStore.filteredJobs = mockUseSavedJobsStore.savedJobs
     
     renderSavedJobsPage()
     
@@ -437,8 +514,9 @@ describe('SavedJobsPage', () => {
   })
 
   test('handles singular job count', () => {
-    mockUseSavedJobsStore.savedJobs = [mockUseSavedJobsStore.savedJobs[0]]
-    mockUseSavedJobsStore.filteredJobs = [...mockUseSavedJobsStore.savedJobs]
+    const singleJob = [mockUseSavedJobsStore.savedJobs[0]]
+    mockUseSavedJobsStore.savedJobs = singleJob
+    mockUseSavedJobsStore.filteredJobs = singleJob
     
     renderSavedJobsPage()
     

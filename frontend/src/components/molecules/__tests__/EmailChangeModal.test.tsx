@@ -391,7 +391,7 @@ describe('EmailChangeModal', () => {
       // Submit to reach verification step
       const newEmailInput = screen.getByTestId('input-enter-new-email-address');
       const confirmEmailInput = screen.getByTestId('input-confirm-new-email-address');
-      let submitButton = screen.getByText('Send Verification Email');
+      const submitButton = screen.getByText('Send Verification Email');
       
       await user.type(newEmailInput, 'new@example.com');
       await user.type(confirmEmailInput, 'new@example.com');
