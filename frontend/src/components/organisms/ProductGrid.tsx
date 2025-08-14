@@ -136,66 +136,68 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex flex-wrap gap-2">
-          <h2 className="text-2xl font-semibold text-main-text">
-            Our Services
-          </h2>
-          <Badge variant="outline" className="text-xs">
-            {filteredAndSortedProducts.length} {filteredAndSortedProducts.length === 1 ? 'service' : 'services'}
-          </Badge>
-        </div>
+      {/* Enhanced Header with controls */}
+      <div className="bg-dark-white px-6 py-4 rounded-lg shadow-lg mb-6">
+        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-2xl font-semibold text-main-text">
+              🎯 Find Your Perfect Service
+            </h2>
+            <Badge variant="outline" className="text-xs bg-pill-bg text-pill-text border-pill-text">
+              {filteredAndSortedProducts.length} services available
+            </Badge>
+          </div>
 
-        <div className="flex flex-wrap gap-2">
-          {/* View Mode Toggle */}
-          {showComparison && aiService && professionalService && (
-            <div className="flex border rounded-lg p-1">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="text-xs"
-              >
-                Grid View
-              </Button>
-              <Button
-                variant={viewMode === 'comparison' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('comparison')}
-                className="text-xs"
-              >
-                Compare
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-3">
+            {/* View Mode Toggle */}
+            {showComparison && aiService && professionalService && (
+              <div className="flex border rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="text-xs"
+                >
+                  Grid View
+                </Button>
+                <Button
+                  variant={viewMode === 'comparison' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('comparison')}
+                  className="text-xs"
+                >
+                  Compare
+                </Button>
+              </div>
+            )}
 
-          {/* Category Filter */}
-          <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Services</SelectItem>
-              {categories.map(category => (
-                <SelectItem key={category} value={category}>
-                  {getCategoryLabel(category)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Services</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {getCategoryLabel(category)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {/* Sort By */}
-          <Select value={selectedSort} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="price">Price</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="deliveryTime">Delivery Speed</SelectItem>
-            </SelectContent>
-          </Select>
+            {/* Sort By */}
+            <Select value={selectedSort} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="price">Price</SelectItem>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="deliveryTime">Delivery Speed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -241,7 +243,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAndSortedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -254,25 +256,30 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             </div>
           )}
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {products.filter(p => p.price === 0).length}
+          {/* Enhanced Quick Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12">
+            <div className="text-center p-6 bg-pill-bg rounded-lg border border-pill-text/20 hover:border-pill-text transition-colors">
+              <div className="text-3xl font-bold text-pill-text mb-2">
+                🆓 {products.filter(p => p.price === 0).length}
               </div>
-              <div className="text-sm text-blue-600">Free Services</div>
+              <div className="text-[16px] text-main-text font-medium">Free Services</div>
+              <div className="text-sm text-searchbar-text mt-1">Get started without cost</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {products.filter(p => p.deliveryTime.toLowerCase().includes('instant')).length}
+            
+            <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200 hover:border-green-400 transition-colors">
+              <div className="text-3xl font-bold text-green-600 mb-2">
+                ⚡ {products.filter(p => p.deliveryTime.toLowerCase().includes('instant')).length}
               </div>
-              <div className="text-sm text-green-600">Instant Delivery</div>
+              <div className="text-[16px] text-main-text font-medium">Instant Results</div>
+              <div className="text-sm text-searchbar-text mt-1">Get feedback immediately</div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {products.filter(p => p.category === 'professional-service').length}
+            
+            <div className="text-center p-6 bg-purple-50 rounded-lg border border-purple-200 hover:border-purple-400 transition-colors">
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                👨‍💼 {products.filter(p => p.category === 'professional-service').length}
               </div>
-              <div className="text-sm text-purple-600">Professional Services</div>
+              <div className="text-[16px] text-main-text font-medium">Expert Review</div>
+              <div className="text-sm text-searchbar-text mt-1">Professional consultation</div>
             </div>
           </div>
         </>

@@ -49,19 +49,45 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
         try {
             await applyPromoCode(promoInput.trim().toUpperCase());
             toast({
-                title: "Promo code applied!",
-                description: `You saved ${(promoDiscount * 100).toFixed(0)}% on your order.`,
+                title: "🎉 Promo code applied!",
+                description: `You saved ${(promoDiscount * 100).toFixed(0)}% on your order!`,
+                duration: 3000,
             });
             setPromoInput('');
-        } catch (error) {
+        } catch {
             toast({
-                title: "Invalid promo code",
+                title: "❌ Invalid promo code",
                 description: "Please check your promo code and try again.",
-                variant: "destructive"
+                variant: "destructive",
+                duration: 3000,
             });
         } finally {
             setPromoLoading(false);
         }
+    };
+
+    const handleRemoveItem = (itemId: string) => {
+        // Find the item to show its name in the toast
+        const item = items.find(item => item.id === itemId);
+        removeItem(itemId);
+        
+        if (item) {
+            toast({
+                title: "🗑️ Removed from Cart",
+                description: `${item.name} has been removed from your cart.`,
+                duration: 2000,
+            });
+        }
+    };
+
+    const handleClearCart = () => {
+        const itemCount = items.length;
+        clearCart();
+        toast({
+            title: "🧹 Cart Cleared",
+            description: `All ${itemCount} ${itemCount === 1 ? 'item' : 'items'} have been removed from your cart.`,
+            duration: 2500,
+        });
     };
 
     const handleCheckout = () => {
@@ -81,11 +107,16 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
             <SheetTrigger asChild>
                 {trigger || <CartIcon />}
             </SheetTrigger>
-            <SheetContent className="flex flex-col w-full max-w-md">
-                <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                        <ShoppingBag className="h-5 w-5" />
-                        Shopping Cart ({items.length})
+            <SheetContent className="flex flex-col w-full max-w-md bg-main-white-bg">
+                <SheetHeader className="px-6 py-4 border-b border-navbar-border bg-dark-white">
+                    <SheetTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ShoppingBag className="h-5 w-5 text-main-text" />
+                            <span className="text-2xl font-semibold text-main-text">🛒 Your Cart</span>
+                        </div>
+                        <Badge className="bg-pill-bg text-pill-text">
+                            {items.length} items
+                        </Badge>
                     </SheetTitle>
                 </SheetHeader>
 
@@ -128,7 +159,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => removeItem(item.id)}
+                                                    onClick={() => handleRemoveItem(item.id)}
                                                 >
                                                     <Trash2 className="h-3 w-3" />
                                                 </Button>
@@ -262,7 +293,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={clearCart}
+                                        onClick={handleClearCart}
                                         className="w-full text-muted-foreground hover:text-destructive"
                                     >
                                         Clear Cart
@@ -273,11 +304,11 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
                     )}
                 </div>
 
-                {/* Cart Summary & Checkout */}
+                {/* Enhanced Cart Footer */}
                 {hasItems && (
-                    <div className="border-t pt-4 space-y-4">
+                    <div className="p-6 border-t border-navbar-border bg-dark-white space-y-4">
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between text-searchbar-text">
                                 <span>Subtotal</span>
                                 <span>{formatCurrency(subtotal)}</span>
                             </div>
@@ -287,23 +318,22 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ trigger, onCheckout }) => {
                                     <span>-{formatCurrency(subtotal * promoDiscount)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between">
+                            <div className="flex justify-between text-searchbar-text">
                                 <span>GST (10%)</span>
                                 <span>{formatCurrency(gst)}</span>
                             </div>
                             <Separator />
-                            <div className="flex justify-between font-semibold text-base">
+                            <div className="flex justify-between font-semibold text-base text-main-text">
                                 <span>Total</span>
                                 <span>{formatCurrency(total)}</span>
                             </div>
                         </div>
 
                         <Button 
-                            className="w-full" 
-                            size="lg"
+                            className="w-full h-[48px] text-[16px] font-semibold" 
                             onClick={handleCheckout}
                         >
-                            Checkout ({formatCurrency(total)})
+                            🚀 Checkout (AU${total.toFixed(2)})
                         </Button>
                     </div>
                 )}

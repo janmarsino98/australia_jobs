@@ -13,8 +13,8 @@ interface CartIconProps {
 
 const CartIcon = React.forwardRef<HTMLButtonElement, CartIconProps>(({ 
     className = '', 
-    size = 'md',
-    variant = 'ghost',
+    size = 'lg',
+    variant = 'default',
     onClick
 }, ref) => {
     const { items, toggleCart } = useCartStore();
@@ -29,15 +29,15 @@ const CartIcon = React.forwardRef<HTMLButtonElement, CartIconProps>(({
     };
 
     const sizeClasses = {
-        sm: 'h-8 w-8',
-        md: 'h-10 w-10',
-        lg: 'h-12 w-12'
+        sm: 'h-10 w-10',
+        md: 'h-12 w-12',
+        lg: 'h-14 w-14'
     };
 
     const iconSizes = {
-        sm: 16,
-        md: 20,
-        lg: 24
+        sm: 18,
+        md: 22,
+        lg: 26
     };
 
     return (
@@ -45,15 +45,14 @@ const CartIcon = React.forwardRef<HTMLButtonElement, CartIconProps>(({
             ref={ref}
             variant={variant}
             size="icon"
-            className={`relative ${sizeClasses[size]} ${className}`}
+            className={`relative ${sizeClasses[size]} bg-pill-bg hover:bg-pill-text text-pill-text hover:text-white transition-all duration-200 border-2 border-pill-text shadow-lg hover:shadow-xl ${className}`}
             onClick={handleClick}
-            aria-label={`Shopping cart with ${itemCount} items`}
+            aria-label={`🛒 Shopping cart with ${itemCount} items`}
         >
-            <ShoppingCart size={iconSizes[size]} />
+            <ShoppingCart size={iconSizes[size]} className="drop-shadow-sm" />
             {itemCount > 0 && (
                 <Badge 
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs font-bold"
+                    className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center text-xs font-bold bg-red-500 text-white border-2 border-white shadow-md animate-pulse"
                 >
                     {itemCount > 99 ? '99+' : itemCount}
                 </Badge>

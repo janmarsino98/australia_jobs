@@ -3,8 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '../ui/button';
 import { Product } from '../../types/store';
 import PriceTag from '../atoms/PriceTag';
-import ServiceBadge from '../atoms/ServiceBadge';
-import DeliveryTime from '../atoms/DeliveryTime';
+import { CheckCircle, Clock } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -33,11 +32,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'ai-service': return '🤖';
+      case 'professional-service': return '👨‍💼';
+      case 'package': return '📦';
+      default: return '🎯';
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'ai-service': return 'AI Powered';
+      case 'professional-service': return 'Professional';
+      case 'package': return 'Package Deal';
+      default: return 'Service';
+    }
+  };
+
   return (
-    <Card className={`rounded-lg border bg-card shadow-sm hover:shadow-lg transition-shadow duration-200 ${featured ? 'ring-2 ring-blue-500 ring-offset-2' : ''} ${className}`}>
-      <CardHeader className="flex flex-col space-y-1.5 p-6">
-        <div className="flex justify-between items-start">
-          <ServiceBadge type={product.category} />
+    <Card className={`h-full flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg transition-all duration-200 group ${featured ? 'ring-2 ring-pill-text ring-offset-2' : ''} ${className}`}>
+      <CardHeader className="p-6 space-y-1.5 flex-shrink-0">
+        {/* Service badge with brand colors */}
+        <div className="flex justify-between items-start mb-3">
+          <div className="bg-pill-bg text-pill-text px-[20px] py-[10px] rounded-full text-xs font-medium">
+            {getCategoryIcon(product.category)} {getCategoryLabel(product.category)}
+          </div>
           <PriceTag 
             amount={product.price} 
             currency={product.currency}
@@ -45,53 +65,67 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             savings={showSavings ? product.savings : undefined}
           />
         </div>
-        <CardTitle className="text-2xl font-semibold text-main-text">
+        
+        {/* Enhanced title with better typography */}
+        <CardTitle className="text-2xl font-semibold text-main-text group-hover:text-pill-text transition-colors">
           {product.name}
         </CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
+        
+        {/* Improved description with proper text color */}
+        <CardDescription className="text-[16px] text-searchbar-text mt-[12px]">
           {product.shortDescription}
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="p-6 pt-0">
-        <ul className="space-y-2 text-sm mb-4">
+      {/* Enhanced content section - flexible to fill available space */}
+      <CardContent className="p-6 pt-0 flex-grow flex flex-col">
+        {/* Custom feature list design */}
+        <div className="space-y-2 mb-6 flex-grow">
           {product.features.map((feature, index) => (
-            <li key={index} className="flex items-start">
-              <span className="text-green-500 mr-2 mt-0.5">✓</span>
-              <span className="text-gray-700">{feature}</span>
-            </li>
+            <div key={index} className="flex items-start my-[12px]">
+              <div className="bg-green-100 rounded-full w-5 h-5 flex items-center justify-center mt-0.5 mr-3 flex-shrink-0">
+                <CheckCircle className="w-3 h-3 text-green-600" />
+              </div>
+              <span className="text-[16px] text-main-text">{feature}</span>
+            </div>
           ))}
-        </ul>
+        </div>
         
-        <DeliveryTime time={product.deliveryTime} className="mt-4" />
-        
+        {/* Delivery time with brand styling */}
+        <div className="flex items-center bg-dark-white px-[16px] py-[12px] rounded-lg mt-auto">
+          <Clock className="w-5 h-5 text-searchbar-text mr-2" />
+          <span className="text-[16px] text-searchbar-text">{product.deliveryTime}</span>
+        </div>
+
         {featured && (
-          <div className="mt-3 p-2 bg-blue-50 rounded-md">
-            <span className="text-xs text-blue-700 font-medium">⭐ Featured Service</span>
+          <div className="mt-3 p-2 bg-pill-bg rounded-md">
+            <span className="text-xs text-pill-text font-medium">⭐ Featured Service</span>
           </div>
         )}
       </CardContent>
       
-      <CardFooter className="flex flex-col gap-2 p-6 pt-0">
-        <Button 
-          variant="default" 
-          className="w-full" 
-          onClick={handleAddToCart}
-          disabled={!product.active}
-        >
-          {product.price === 0 ? 'Get Free Review' : 'Add to Cart'}
-        </Button>
-        
-        {onCompare && (
+      {/* Enhanced footer - fixed at bottom */}
+      <CardFooter className="p-6 pt-0 flex-shrink-0">
+        <div className="w-full space-y-2">
           <Button 
-            variant="outline" 
-            size="sm"
-            className="w-full" 
-            onClick={handleCompare}
+            className="w-full h-[48px] text-[16px] font-semibold" 
+            onClick={handleAddToCart}
+            disabled={!product.active}
           >
-            Compare Services
+            {product.price === 0 ? '🎯 Get Free Analysis' : '🛒 Add to Cart'}
           </Button>
-        )}
+          
+          {onCompare && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full" 
+              onClick={handleCompare}
+            >
+              Compare Services
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

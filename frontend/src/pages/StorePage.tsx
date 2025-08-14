@@ -4,21 +4,34 @@ import useCartStore from '../stores/useCartStore';
 import { Product } from '../types/store';
 import ProductGrid from '../components/organisms/ProductGrid';
 import ShoppingCart from '../components/molecules/ShoppingCart';
+import CartIcon from '../components/atoms/CartIcon';
+import { useToast } from '../components/ui/use-toast';
 
 const StorePage: React.FC = () => {
     const { products, isLoading, error, setProducts, setLoading, setError } = useStoreStore();
     const { addItem } = useCartStore();
     const [sortBy, setSortBy] = useState<'price' | 'name' | 'deliveryTime'>('price');
     const [filters, setFilters] = useState({});
+    const { toast } = useToast();
     
     const handleProductSelect = (product: Product) => {
         if (product.price === 0) {
-            // For free services, redirect directly to the service
+            // For free services, show toast and redirect directly to the service
+            toast({
+                title: "🎯 Free Analysis Started!",
+                description: `${product.name} is ready for you. Let's get started!`,
+                duration: 4000,
+            });
             console.log('Redirecting to free service:', product.id);
             // This would typically navigate to a service page
         } else {
             // Add paid services to cart
             addItem(product);
+            toast({
+                title: "🛒 Added to Cart!",
+                description: `${product.name} (AU$${product.price.toFixed(2)}) has been added to your cart.`,
+                duration: 3000,
+            });
         }
     };
 
@@ -176,16 +189,19 @@ const StorePage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-main-white-bg">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                        Resume Services Store
+                <div className="text-center mb-12 px-6 py-4">
+                    <h1 className="text-4xl font-bold text-main-text mb-4">
+                        🚀 Boost Your Career
                     </h1>
-                    <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                        Enhance your job search with our AI-powered and professional resume services. 
-                        From instant analysis to expert review, we've got you covered.
+                    <h2 className="text-2xl font-semibold text-searchbar-text mb-6">
+                        AI-Powered & Professional Resume Services
+                    </h2>
+                    <p className="text-[16px] text-searchbar-text max-w-3xl mx-auto leading-relaxed">
+                        Transform your job search with our comprehensive suite of resume services. 
+                        From instant AI analysis to expert professional review, we've got everything you need to stand out.
                     </p>
                 </div>
 
@@ -204,6 +220,11 @@ const StorePage: React.FC = () => {
             
             {/* Shopping Cart */}
             <ShoppingCart />
+            
+            {/* Fixed Floating Cart Icon for better visibility */}
+            <div className="fixed bottom-6 right-6 z-50">
+                <CartIcon />
+            </div>
         </div>
     );
 };
