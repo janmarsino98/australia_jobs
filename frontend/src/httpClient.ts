@@ -7,7 +7,7 @@ const httpClient = axios.create({
     withCredentials: true,
     xsrfCookieName: 'XSRF-TOKEN',
     xsrfHeaderName: 'X-XSRF-TOKEN',
-    timeout: 30000, // 30 second timeout
+    timeout: 90000, // 90 second timeout for AI operations
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json',

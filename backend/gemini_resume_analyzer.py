@@ -124,41 +124,148 @@ def analyze_resume_with_gemini_structured(resume_text: str) -> Dict[str, Any]:
     if not GEMINI_API_KEY:
         raise GeminiAnalysisError("Gemini API key not configured")
     
+    # Optimize text size for better performance (limit to ~8000 chars)
+    if len(resume_text) > 8000:
+        # Keep beginning and end of document for better context
+        resume_text = resume_text[:6000] + "... [truncated] ..." + resume_text[-2000:]
+    
     try:
-        # Initialize the model with structured output
+        # Define the schema as a dictionary instead of using Pydantic directly
+        resume_schema = {
+            "type": "object",
+            "properties": {
+                "isResume": {
+                    "type": "boolean",
+                    "description": "Whether the document is actually a resume/CV"
+                },
+                "confidence_score": {
+                    "type": "number",
+                    "description": "Confidence score (0.0-1.0) that this is a resume"
+                },
+                "contact_info": {
+                    "type": "object",
+                    "properties": {
+                        "full_name": {"type": "string"},
+                        "email": {"type": "string"},
+                        "phone": {"type": "string"},
+                        "linkedin_url": {"type": "string"},
+                        "location": {"type": "string"},
+                        "website": {"type": "string"}
+                    }
+                },
+                "professional_summary": {
+                    "type": "string",
+                    "description": "Professional summary or objective"
+                },
+                "work_experience": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "job_title": {"type": "string"},
+                            "company_name": {"type": "string"},
+                            "location": {"type": "string"},
+                            "start_date": {"type": "string"},
+                            "end_date": {"type": "string"},
+                            "duration": {"type": "string"},
+                            "responsibilities": {"type": "array", "items": {"type": "string"}},
+                            "technologies": {"type": "array", "items": {"type": "string"}}
+                        },
+                        "required": ["job_title", "company_name"]
+                    }
+                },
+                "education": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "degree": {"type": "string"},
+                            "institution": {"type": "string"},
+                            "location": {"type": "string"},
+                            "graduation_year": {"type": "string"},
+                            "gpa": {"type": "string"},
+                            "honors": {"type": "array", "items": {"type": "string"}}
+                        },
+                        "required": ["degree", "institution"]
+                    }
+                },
+                "skills": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "certifications": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "issuing_organization": {"type": "string"},
+                            "issue_date": {"type": "string"},
+                            "expiry_date": {"type": "string"},
+                            "credential_id": {"type": "string"}
+                        },
+                        "required": ["name"]
+                    }
+                },
+                "projects": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "description": {"type": "string"},
+                            "technologies": {"type": "array", "items": {"type": "string"}},
+                            "duration": {"type": "string"},
+                            "url": {"type": "string"},
+                            "role": {"type": "string"}
+                        },
+                        "required": ["name", "description"]
+                    }
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "language": {"type": "string"},
+                            "proficiency": {"type": "string"}
+                        },
+                        "required": ["language"]
+                    }
+                },
+                "document_type": {"type": "string"},
+                "total_experience_years": {"type": "number"},
+                "industry_focus": {"type": "string"},
+                "seniority_level": {"type": "string"}
+            },
+            "required": ["isResume", "confidence_score"]
+        }
+        
+        # Initialize the model with structured output and performance optimizations
         model = genai.GenerativeModel(
             'gemini-2.5-flash',
             generation_config=genai.GenerationConfig(
                 response_mime_type="application/json",
-                response_schema=StructuredResumeData
+                response_schema=resume_schema,
+                temperature=0.1,  # Lower temperature for more consistent output
+                max_output_tokens=4096,  # Limit output tokens to speed up response
+                candidate_count=1  # Single candidate for faster response
             )
         )
         
-        # Construct the analysis prompt
+        # Construct the analysis prompt (optimized for performance)
         prompt = f"""
-        Analyze the following document and extract structured resume information. 
+        Extract structured data from this document. Set isResume=false if not a resume/CV.
         
-        CRITICAL: First determine if this document is actually a resume/CV. If it's not a resume 
-        (e.g., it's a cover letter, job description, random text, etc.), set isResume to false 
-        and confidence_score to a low value (0.0-0.3).
-        
-        If it IS a resume, extract all available information into the structured format and set 
-        isResume to true with an appropriate confidence_score (0.7-1.0).
-        
-        Document to analyze:
+        Document:
         {resume_text}
         
-        Instructions:
-        1. Determine if this is a resume/CV document
-        2. If not a resume, set isResume=false and minimal extraction
-        3. If it is a resume, extract all available information comprehensively
-        4. Be thorough in extracting skills, experience, education, and projects
-        5. Parse dates and durations carefully
-        6. Identify technologies and tools mentioned
-        7. Estimate experience level and industry focus
-        8. Extract contact information accurately
+        Extract:
+        - Contact info, experience, education, skills
+        - Technologies, certifications, projects
+        - Set confidence_score (0.0-1.0) and isResume (true/false)
         
-        Return the structured data in JSON format matching the StructuredResumeData schema.
+        Return JSON matching the schema.
         """
         
         # Generate structured response
