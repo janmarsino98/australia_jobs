@@ -113,4 +113,77 @@ export interface FormState {
     resetForm: () => void;
     isValid: boolean;
     isSubmitting: boolean;
+}
+
+// Store Product Types
+export interface Product {
+    id: string;
+    name: string;
+    category: 'ai-service' | 'professional-service' | 'package';
+    price: number;
+    currency: 'AUD';
+    description: string;
+    shortDescription: string;
+    features: string[];
+    deliveryTime: string;
+    originalPrice?: number; // For package deals
+    savings?: number;
+    active: boolean;
+    metadata: {
+        isPackage: boolean;
+        includedServices?: string[];
+        isFree: boolean;
+    };
+}
+
+export interface CartItem {
+    id: string;
+    productId: string;
+    name: string;
+    price: number;
+    category: 'ai-service' | 'professional-service' | 'package';
+    quantity: number;
+    deliveryTime: string;
+    conflictsWith?: string[]; // Other product IDs that conflict
+}
+
+export interface CartState {
+    items: CartItem[];
+    subtotal: number;
+    gst: number; // 10% GST for Australia
+    total: number;
+    promoCode?: string;
+    promoDiscount: number;
+    isOpen: boolean;
+    
+    // Actions
+    addItem: (product: Product) => void;
+    removeItem: (itemId: string) => void;
+    updateQuantity: (itemId: string, quantity: number) => void;
+    clearCart: () => void;
+    applyPromoCode: (code: string) => Promise<void>;
+    removePromoCode: () => void;
+    toggleCart: () => void;
+    
+    // Smart features
+    getRecommendations: () => Product[];
+    resolveConflicts: (newItem: Product) => void;
+    calculateTotals: () => void;
+}
+
+export interface StoreState {
+    products: Product[];
+    featuredProducts: Product[];
+    isLoading: boolean;
+    error: string | null;
+    selectedProduct: Product | null;
+    
+    // Actions
+    setProducts: (products: Product[]) => void;
+    setFeaturedProducts: (products: Product[]) => void;
+    setSelectedProduct: (product: Product | null) => void;
+    setLoading: (loading: boolean) => void;
+    setError: (error: string | null) => void;
+    getProductById: (id: string) => Product | undefined;
+    getProductsByCategory: (category: string) => Product[];
 } 

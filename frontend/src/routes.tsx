@@ -34,6 +34,7 @@ import CookiePolicyPage from "./pages/CookiePolicyPage";
 import VlogPage from "./pages/VlogPage";
 import TechBlogPage from "./pages/TechBlogPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import StorePage from "./pages/StorePage";
 import { Outlet } from "react-router-dom";
 
 
@@ -204,6 +205,10 @@ const routes = createBrowserRouter([
       {
         path: "/techblog",
         element: <TechBlogPage />,
+      },
+      {
+        path: "/store",
+        element: <StorePage />,
       },
       {
         path: "/post-job",

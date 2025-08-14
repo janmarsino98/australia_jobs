@@ -160,7 +160,7 @@ describe('UserProfilePage - Simple Tests', () => {
 
   test('handles 404 response gracefully', async () => {
     // Reset fetch mock for clean test
-    ;(global.fetch as jest.Mock).mockReset()
+    (global.fetch as jest.Mock).mockReset()
     
     // Mock 404 response
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -188,7 +188,7 @@ describe('UserProfilePage - Simple Tests', () => {
 
   test('handles API errors gracefully', async () => {
     // Mock error response
-    ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
 
     const mockToast = jest.fn()
     jest.doMock('../../components/ui/use-toast', () => ({

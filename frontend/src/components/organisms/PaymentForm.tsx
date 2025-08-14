@@ -14,9 +14,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentFormProps {
   selectedPackage: any;
+  onPaymentSuccess?: () => void;
+  onPaymentError?: (error: string) => void;
 }
 
-const PaymentForm = ({ selectedPackage }: PaymentFormProps) => {
+const PaymentForm = ({ selectedPackage, onPaymentSuccess, onPaymentError }: PaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [clientSecret, setClientSecret] = useState("");
@@ -81,16 +83,28 @@ const PaymentForm = ({ selectedPackage }: PaymentFormProps) => {
       );
 
       if (error) {
+        const errorMessage = error.message || "Payment failed. Please try again.";
         setError("root", {
-          message: error.message || "Payment failed. Please try again.",
+          message: errorMessage,
         });
+        if (onPaymentError) {
+          onPaymentError(errorMessage);
+        }
       } else if (paymentIntent.status === "succeeded") {
-        navigate("/");
+        if (onPaymentSuccess) {
+          onPaymentSuccess();
+        } else {
+          navigate("/");
+        }
       }
     } catch (error) {
+      const errorMessage = "An unexpected error occurred. Please try again.";
       setError("root", {
-        message: "An unexpected error occurred. Please try again.",
+        message: errorMessage,
       });
+      if (onPaymentError) {
+        onPaymentError(errorMessage);
+      }
     }
   };
 
