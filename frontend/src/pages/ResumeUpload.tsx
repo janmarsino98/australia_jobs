@@ -10,18 +10,20 @@ import {
   Trash2,
   Edit3,
 } from "lucide-react";
-import httpClient from "@/httpClient";
 import ResumePreview from "../components/molecules/ResumePreview";
 import { ResumeRenameModal } from "../components/molecules/ResumeRenameModal";
 import useResumeStore from "@/stores/useResumeStore";
+import useAuthStore from "@/stores/useAuthStore";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function CVAnalysisPage() {
   const [analysisState, setAnalysisState] = useState("idle");
-  const [progress, setProgress] = useState(0);
-  const [user, setUser] = useState(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [triggerAnalysis, setTriggerAnalysis] = useState(false);
+  
+  // Authentication state
+  const { isAuthenticated } = useAuthStore();
 
   // Resume store
   const {
@@ -43,20 +45,11 @@ export default function CVAnalysisPage() {
   const resumeName = currentResume?.custom_name || currentResume?.filename || "Uploaded Resume";
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const resp = await httpClient.get("/auth/@me", {
-          withCredentials: true,
-        });
-        setUser(resp.data);
-      } catch (e) {
-        // Failed to fetch user
-      }
-    };
-
-    fetchUser();
-    fetchCurrentResume(); // Fetch current resume on component mount
-  }, [fetchCurrentResume]);
+    // Only fetch resume if user is authenticated
+    if (isAuthenticated) {
+      fetchCurrentResume();
+    }
+  }, [isAuthenticated, fetchCurrentResume]);
 
   // Clear upload error when component unmounts
   useEffect(() => {
@@ -65,17 +58,9 @@ export default function CVAnalysisPage() {
 
   const startAnalysis = () => {
     setAnalysisState("analyzing");
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress((prevProgress) => {
-        if (prevProgress >= 100) {
-          clearInterval(interval);
-          setAnalysisState("complete");
-          return 100;
-        }
-        return prevProgress + 10;
-      });
-    }, 500);
+    setTriggerAnalysis(true);
+    // Reset trigger after a short delay to allow ResumePreview to detect the change
+    setTimeout(() => setTriggerAnalysis(false), 100);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,7 +92,7 @@ export default function CVAnalysisPage() {
     }
 
     try {
-      const resumeData = await uploadResume(file);
+      await uploadResume(file);
       
       setUploadedFile(file);
       setAnalysisState("idle");
@@ -163,7 +148,32 @@ export default function CVAnalysisPage() {
   };
 
   const handleAnalysisComplete = (analysis: any) => {
-    // Analysis completed
+    console.log("Analysis completed:", analysis);
+    setAnalysisState("complete");
+    toast({
+      title: "Analysis complete",
+      description: `Resume analyzed successfully with a score of ${analysis.score}/100`,
+    });
+  };
+
+  const handleAnalysisError = (error: string) => {
+    console.error("Analysis failed:", error);
+    setAnalysisState("idle");
+    
+    // Show specific error message for document validation failures
+    if (error.includes("not recognized as a resume") || error.includes("Document validation failed")) {
+      toast({
+        title: "Document validation failed",
+        description: "The uploaded document is not recognized as a resume. Please upload a valid resume/CV document.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Analysis failed",
+        description: error || "Failed to analyze resume. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -283,14 +293,10 @@ export default function CVAnalysisPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Analysis Progress</span>
-                        <span>{progress}%</span>
-                      </div>
-                      <Progress value={progress} className="h-2" />
+                    <div className="flex items-center justify-center p-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 text-center">
                       We're analyzing your resume for content quality, ATS compatibility, and improvement suggestions.
                     </p>
                   </CardContent>
@@ -332,7 +338,10 @@ export default function CVAnalysisPage() {
                 resumeId={currentResume?.id}
                 resumeFile={uploadedFile || undefined}
                 onAnalysisComplete={handleAnalysisComplete}
+                onAnalysisError={handleAnalysisError}
                 className="w-full"
+                autoAnalyze={false}
+                triggerAnalysis={triggerAnalysis}
               />
             </div>
           </div>

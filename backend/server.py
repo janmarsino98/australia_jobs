@@ -18,7 +18,8 @@ def create_app():
     app.config["SESSION_REDIS"] = redis.from_url(os.getenv('REDIS_URL', "redis://127.0.0.1:6379"))
     
     # Force specific host for OAuth redirects
-    app.config['SERVER_NAME'] = os.getenv('SERVER_NAME', 'localhost:5000')
+    # Comment out SERVER_NAME to allow requests from both localhost and 127.0.0.1
+    # app.config['SERVER_NAME'] = os.getenv('SERVER_NAME', 'localhost:5000')
     app.config['PREFERRED_URL_SCHEME'] = os.getenv('PREFERRED_URL_SCHEME', 'http')
     
     # Mail configuration
@@ -36,7 +37,7 @@ def create_app():
     server_session.init_app(app)
     mail.init_app(app)
     CORS(app, 
-         origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"], 
+         origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000", "http://127.0.0.1:5000", "http://localhost:5000"], 
          supports_credentials=True,
          allow_headers=['Content-Type', 'Authorization', 'X-Requested-With', 'X-XSRF-TOKEN', 'X-Content-Type-Options', 'X-Frame-Options', 'X-XSS-Protection'],
          methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
@@ -66,6 +67,8 @@ def create_app():
     from applications.applications import applications_bp
     from notification_system import notifications_bp
     from notification_preferences import notification_preferences_bp
+    from recommendations.recommendations import recommendations_bp
+    from analytics.analytics import analytics_bp
     
     # Initialize OAuth
     try:
@@ -84,13 +87,19 @@ def create_app():
     app.register_blueprint(jobs_bp, url_prefix='/jobs')
     app.register_blueprint(states_bp, url_prefix='/states')
     app.register_blueprint(cities_bp, url_prefix='/cities')
+    print("Registering resume blueprint...")
     app.register_blueprint(resume_bp, url_prefix='/resume')
+    print(f"Resume blueprint registered with routes: {[rule.rule for rule in app.url_map.iter_rules() if 'resume' in rule.rule]}")
     app.register_blueprint(applications_bp, url_prefix='/applications')
     app.register_blueprint(notifications_bp, url_prefix='/notifications')
     app.register_blueprint(notification_preferences_bp, url_prefix='/notification-preferences')
+    app.register_blueprint(recommendations_bp, url_prefix='/recommendations')
+    print("Registering analytics blueprint...")
+    app.register_blueprint(analytics_bp, url_prefix='/analytics')
+    print(f"Analytics blueprint registered with routes: {[rule.rule for rule in app.url_map.iter_rules() if 'analytics' in rule.rule]}")
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

@@ -129,6 +129,8 @@ def get_profile():
         user = get_users_db().find_one({"_id": user_id})
         
         if not user:
+            # Clear the invalid session
+            session.clear()
             return jsonify({"error": "User not found"}), 404
         
         # Remove sensitive data

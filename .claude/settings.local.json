@@ -22,8 +22,10 @@
       "Bash(git checkout:*)",
       "Bash(node:*)",
       "Bash(npx eslint:*)",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(taskkill:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

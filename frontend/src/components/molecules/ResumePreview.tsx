@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
@@ -15,19 +15,27 @@ import {
 import { PDFPreview } from "./PDFPreview";
 import httpClient from "@/httpClient";
 import { ResumeData, ResumeAnalysis, ResumeMetadata } from "@/types";
+import useAuthStore from "@/stores/useAuthStore";
+import config from "@/config";
 
 interface ResumePreviewProps {
   resumeId?: string;
   resumeFile?: File;
   onAnalysisComplete?: (analysis: ResumeAnalysis) => void;
+  onAnalysisError?: (error: string) => void;
   className?: string;
+  autoAnalyze?: boolean; // Whether to automatically run analysis
+  triggerAnalysis?: boolean; // When this changes to true, trigger analysis
 }
 
 export const ResumePreview: React.FC<ResumePreviewProps> = ({ 
   resumeId,
   resumeFile, 
   onAnalysisComplete,
-  className = "" 
+  onAnalysisError,
+  className = "",
+  autoAnalyze = false,
+  triggerAnalysis = false
 }) => {
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [resumeMetadata, setResumeMetadata] = useState<ResumeMetadata | null>(null);
@@ -37,24 +45,17 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  
+  // Authentication state
+  const { isAuthenticated } = useAuthStore();
 
-  // Fetch resume metadata when resumeId changes
-  useEffect(() => {
-    if (resumeId) {
-      fetchResumeMetadata();
-      setPreviewUrl(`http://127.0.0.1:5000/resume/preview/${resumeId}`);
-    }
-  }, [resumeId]);
-
-  const fetchResumeMetadata = async () => {
-    if (!resumeId) return;
+  const fetchResumeMetadata = useCallback(async () => {
+    if (!resumeId || !isAuthenticated) return;
     
     try {
       setLoading(true);
       setError(null);
-      const response = await httpClient.get(`http://127.0.0.1:5000/resume/metadata/${resumeId}`, {
-        withCredentials: true,
-      });
+      const response = await httpClient.get(`/resume/metadata`);
       setResumeMetadata(response.data);
     } catch (error: any) {
       console.error("Failed to fetch resume metadata:", error);
@@ -62,30 +63,55 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [resumeId, isAuthenticated]);
+
+  // Fetch resume metadata when resumeId changes and user is authenticated
+  useEffect(() => {
+    if (resumeId && isAuthenticated) {
+      fetchResumeMetadata();
+      setPreviewUrl(`${config.apiBaseUrl}/resume/current`);
+    }
+  }, [resumeId, isAuthenticated, fetchResumeMetadata]);
 
   // Parse resume content
-  const parseResume = async (file?: File): Promise<ResumeData> => {
+  const parseResume = useCallback(async (file?: File): Promise<ResumeData> => {
     if (!file && !resumeId) {
       throw new Error("No file or resume ID provided");
+    }
+    
+    if (!isAuthenticated) {
+      throw new Error("User not authenticated");
     }
 
     try {
       if (resumeId) {
-        // Use backend API to parse resume content
-        const response = await httpClient.get(`http://127.0.0.1:5000/resume/parse/${resumeId}`, {
-          withCredentials: true,
-        });
-        return response.data;
+        // Use backend API to analyze resume content
+        const response = await httpClient.post(`/resume/analyze`);
+        // Extract parsed data from the backend response
+        const parsedData = response.data.parsed_data || {};
+        
+        // Transform to expected format
+        const transformedData = {
+          personalInfo: {
+            name: parsedData.contact_info?.names?.[0] || '',
+            email: parsedData.contact_info?.emails?.[0] || '',
+            phone: parsedData.contact_info?.phones?.[0] || '',
+            location: parsedData.contact_info?.locations?.[0] || ''
+          },
+          summary: parsedData.summary,
+          experience: parsedData.work_experience || [],
+          education: parsedData.education || [],
+          skills: parsedData.skills || [],
+          certifications: parsedData.certifications || []
+        };
+        
+        return transformedData;
       } else if (file) {
         // Upload and parse file
         const formData = new FormData();
         formData.append("file", file);
         
-        const response = await httpClient.post("http://127.0.0.1:5000/resume/parse", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        });
+        const response = await httpClient.post("/resume/parse", formData);
         return response.data;
       }
     } catch (error: any) {
@@ -97,90 +123,144 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
     }
     
     throw new Error("Invalid parameters");
-  };
+  }, [resumeId, isAuthenticated]);
 
-  // Analyze resume content
-  const analyzeResume = async (): Promise<ResumeAnalysis> => {
+  // Analyze resume content with Gemini structured analysis
+  const analyzeResume = useCallback(async (): Promise<ResumeAnalysis> => {
     if (!resumeId && !resumeFile) {
       throw new Error("No resume to analyze");
+    }
+    
+    if (!isAuthenticated) {
+      throw new Error("User not authenticated");
     }
 
     try {
       let response;
       if (resumeId) {
-        response = await httpClient.post(`http://127.0.0.1:5000/resume/analyze/${resumeId}`, {}, {
-          withCredentials: true,
-        });
+        // Use structured analysis endpoint with document validation
+        response = await httpClient.post(`/resume/analyze-structured`);
       } else if (resumeFile) {
         const formData = new FormData();
         formData.append("file", resumeFile);
         
-        response = await httpClient.post("http://127.0.0.1:5000/resume/analyze", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        });
+        response = await httpClient.post("/resume/analyze-structured", formData);
       }
       
       if (!response?.data) {
         throw new Error("Analysis service returned no data");
       }
 
-      // Validate the analysis response
       const analysisData = response.data;
-      if (!analysisData.score && !analysisData.atsScore) {
-        throw new Error("Invalid analysis response format");
+      
+      // Check if document was validated as a resume
+      if (!analysisData.success || !analysisData.is_resume) {
+        throw new Error(
+          analysisData.message || 
+          "The uploaded document is not recognized as a resume. Please upload a valid resume/CV document."
+        );
       }
 
-      return analysisData;
+      // Map backend response to frontend format
+      const completenessAnalysis = analysisData.completeness_analysis || {};
+      const structuredSummary = analysisData.structured_summary || {};
+      
+      // Transform to expected format
+      const transformedAnalysis = {
+        score: completenessAnalysis.completeness_score || 0,
+        atsScore: analysisData.confidence_score * 100 || 0, // Use confidence as ATS score
+        strengths: completenessAnalysis.feedback?.filter((item: string) => !item.toLowerCase().includes("add")) || [],
+        improvements: completenessAnalysis.feedback?.filter((item: string) => item.toLowerCase().includes("add")) || [],
+        keywords: analysisData.structured_data?.skills || [],
+        sections: {
+          contact_info: structuredSummary.has_professional_summary,
+          experience: structuredSummary.work_experience_count > 0,
+          education: structuredSummary.education_count > 0,
+          skills: structuredSummary.skills_count > 0
+        },
+        analysis_id: analysisData.structured_doc_id,
+        file_id: analysisData.file_id,
+        analyzed_at: analysisData.analyzed_at,
+        // Additional structured data
+        structured_data: analysisData.structured_data,
+        validation_result: analysisData.validation_result
+      };
+
+      return transformedAnalysis;
     } catch (error: any) {
       console.error("Error analyzing resume:", error);
       
-      // Instead of returning mock data, throw a descriptive error
-      const errorMessage = error.response?.data?.message || error.message || "Resume analysis failed";
-      throw new Error(`Resume analysis unavailable: ${errorMessage}`);
-    }
-  };
-
-  useEffect(() => {
-    if (resumeFile || resumeId) {
-      setIsAnalyzing(true);
-      setAnalysisProgress(0);
-      setError(null);
+      // Handle specific validation errors
+      if (error.response?.status === 400 && error.response?.data?.error?.includes("not recognized as a valid resume")) {
+        throw new Error("Document validation failed: This document is not recognized as a resume. Please upload a valid resume/CV document.");
+      }
       
-      const runAnalysis = async () => {
-        try {
-          // Simulate progress updates
-          const progressInterval = setInterval(() => {
-            setAnalysisProgress(prev => {
-              if (prev >= 90) {
-                clearInterval(progressInterval);
-                return 90;
-              }
-              return prev + 10;
-            });
-          }, 200);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "Resume analysis failed";
+      throw new Error(`Resume analysis failed: ${errorMessage}`);
+    }
+  }, [resumeId, resumeFile, isAuthenticated]);
 
-          const parsedData = await parseResume(resumeFile);
-          setResumeData(parsedData);
-          
-          const analysisResult = await analyzeResume();
-          setAnalysis(analysisResult);
-          
-          clearInterval(progressInterval);
-          setAnalysisProgress(100);
-          
-          onAnalysisComplete?.(analysisResult);
-        } catch (error: any) {
-          console.error('Error analyzing resume:', error);
-          setError(error.message || 'Failed to analyze resume');
-        } finally {
-          setIsAnalyzing(false);
-        }
-      };
+  // Function to manually trigger analysis
+  const runAnalysis = useCallback(async () => {
+    if (!isAuthenticated) {
+      setError("User not authenticated");
+      return;
+    }
+    
+    if (!resumeFile && !resumeId) {
+      setError("No resume to analyze");
+      return;
+    }
 
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setError(null);
+    
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const parsedData = await parseResume(resumeFile);
+      setResumeData(parsedData);
+      
+      const analysisResult = await analyzeResume();
+      setAnalysis(analysisResult);
+      
+      clearInterval(progressInterval);
+      setAnalysisProgress(100);
+      
+      onAnalysisComplete?.(analysisResult);
+    } catch (error: any) {
+      console.error('Error analyzing resume:', error);
+      const errorMessage = error.message || 'Failed to analyze resume';
+      setError(errorMessage);
+      onAnalysisError?.(errorMessage);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [isAuthenticated, resumeFile, resumeId, parseResume, analyzeResume, onAnalysisComplete, onAnalysisError]);
+
+  // Auto-run analysis on component mount if autoAnalyze is true
+  useEffect(() => {
+    if (autoAnalyze && (resumeFile || resumeId) && isAuthenticated) {
       runAnalysis();
     }
-  }, [resumeFile, resumeId, onAnalysisComplete]);
+  }, [resumeFile, resumeId, isAuthenticated, autoAnalyze, runAnalysis]);
+
+  // Trigger analysis when triggerAnalysis prop changes to true
+  useEffect(() => {
+    if (triggerAnalysis && (resumeFile || resumeId) && isAuthenticated) {
+      runAnalysis();
+    }
+  }, [triggerAnalysis, resumeFile, resumeId, isAuthenticated, runAnalysis]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
@@ -254,6 +334,24 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({
             {analysisProgress >= 30 && analysisProgress < 60 && "Parsing sections..."}
             {analysisProgress >= 60 && analysisProgress < 90 && "Analyzing content quality..."}
             {analysisProgress >= 90 && "Finalizing analysis..."}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <AlertTriangle className="w-5 h-5 mr-2" />
+            Authentication Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-gray-500">
+            Please log in to view resume preview and analysis
           </div>
         </CardContent>
       </Card>

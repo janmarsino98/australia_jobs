@@ -150,7 +150,7 @@ const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const { toast } = useToast();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
 
   // Check for success message from email verification
   useEffect(() => {
@@ -256,6 +256,15 @@ const UserProfilePage = () => {
   // Load user profile data
   useEffect(() => {
     const loadProfile = async () => {
+      // Wait a bit for auth initialization to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Only load profile if user is authenticated
+      if (!user || !isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const response = await fetch(buildApiUrl('/users/profile'), {
@@ -276,35 +285,43 @@ const UserProfilePage = () => {
               state: profileData.location?.state || ""
             }
           });
+        } else if (response.status === 404) {
+          // User not found - clear auth state and redirect to login
+          const { logout } = useAuthStore.getState();
+          logout();
+          toast({
+            title: "Session Expired",
+            description: "Please log in again",
+            variant: "destructive"
+          });
+          window.location.href = "/login";
         } else {
           // If no profile exists, use auth user data
-          if (user) {
-            const initialProfile = {
-              name: user.name,
-              email: user.email,
-              phone: "",
-              bio: "",
-              location: user.location || {},
-              skills: [],
-              experience: [],
-              education: [],
-              certifications: [],
-              socialLinks: {},
-              preferences: {}
-            };
-            setProfile(initialProfile);
-            reset({
-              name: user.name,
-              phone: "",
-              bio: "",
-              location: user.location || { city: "", state: "" }
-            });
-          }
+          const initialProfile = {
+            name: user.name,
+            email: user.email,
+            phone: "",
+            bio: "",
+            location: user.location || {},
+            skills: [],
+            experience: [],
+            education: [],
+            certifications: [],
+            socialLinks: {},
+            preferences: {}
+          };
+          setProfile(initialProfile);
+          reset({
+            name: user.name,
+            phone: "",
+            bio: "",
+            location: user.location || { city: "", state: "" }
+          });
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
         toast({
-          title: "Error",
+          title: "Error", 
           description: "Failed to load profile data",
           variant: "destructive"
         });
@@ -314,11 +331,20 @@ const UserProfilePage = () => {
     };
 
     loadProfile();
-  }, [user, reset, toast]);
+  }, [user, isAuthenticated, reset, toast]);
 
   const onSubmitBasicInfo = async (data: any) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update your profile",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const response = await fetch("http://localhost:5000/users/profile", {
+      const response = await fetch(buildApiUrl('/users/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -382,6 +408,8 @@ const UserProfilePage = () => {
   };
 
   const updateSkills = async (skills: string[]) => {
+    if (!user) return;
+    
     try {
       await fetch(buildApiUrl('/users/profile/skills'), {
         method: 'PUT',
@@ -397,6 +425,8 @@ const UserProfilePage = () => {
   };
 
   const addExperience = async (data: any) => {
+    if (!user) return;
+    
     try {
       const response = await fetch(buildApiUrl('/users/profile/experience'), {
         method: 'POST',
@@ -426,6 +456,8 @@ const UserProfilePage = () => {
   };
 
   const addEducation = async (data: any) => {
+    if (!user) return;
+    
     try {
       const response = await fetch(buildApiUrl('/users/profile/education'), {
         method: 'POST',
@@ -455,6 +487,8 @@ const UserProfilePage = () => {
   };
 
   const removeExperience = async (experienceId: string) => {
+    if (!user) return;
+    
     try {
       const response = await fetch(buildApiUrl(`/users/profile/experience/${experienceId}`), {
         method: 'DELETE',
@@ -483,6 +517,8 @@ const UserProfilePage = () => {
   };
 
   const removeEducation = async (educationId: string) => {
+    if (!user) return;
+    
     try {
       const response = await fetch(buildApiUrl(`/users/profile/education/${educationId}`), {
         method: 'DELETE',
@@ -511,6 +547,8 @@ const UserProfilePage = () => {
   };
 
   const updatePreferences = async (data: any) => {
+    if (!user) return;
+    
     try {
       const response = await fetch(buildApiUrl('/users/profile/preferences'), {
         method: 'PUT',

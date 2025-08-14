@@ -1,16 +1,22 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, configure } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
 import '@testing-library/jest-dom'
 import UserProfilePage from '../UserProfilePage'
+
+// Configure testing library to be more resilient
+configure({
+  testIdAttribute: 'data-testid',
+  computedStyleSupportsPseudoElements: false,
+})
 
 // Mock dependencies
 jest.mock('../../hooks/useZodForm')
 jest.mock('../../stores/useAuthStore')
 jest.mock('../../config', () => ({
   buildApiUrl: jest.fn((path) => `http://localhost:5000${path}`),
-  default: { baseURL: 'http://localhost:5000' }
+  default: { apiBaseUrl: 'http://localhost:5000' }
 }))
 
 jest.mock('react-router-dom', () => ({
@@ -72,6 +78,9 @@ jest.mock('../../components/ui/use-toast', () => ({
   }),
 }))
 
+// Mock fetch
+global.fetch = jest.fn()
+
 const mockUseZodForm = require('../../hooks/useZodForm')
 const mockUseAuthStore = require('../../stores/useAuthStore')
 const mockReactRouter = require('react-router-dom')
@@ -79,6 +88,18 @@ const mockReactRouter = require('react-router-dom')
 describe('UserProfilePage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    // Setup fetch mock
+    ;(global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        name: 'John Doe',
+        email: 'john@example.com',
+        bio: 'Software developer',
+        phone: '+61400000000',
+        location: { city: 'Sydney', state: 'NSW' }
+      })
+    })
     
     mockReactRouter.useSearchParams.mockReturnValue([
       new URLSearchParams(),
@@ -92,7 +113,7 @@ describe('UserProfilePage', () => {
     
     mockUseAuthStore.default.mockReturnValue({
       user: {
-        _id: '123',
+        id: '123',
         name: 'John Doe',
         email: 'john@example.com',
         profile_picture: null,
@@ -100,6 +121,7 @@ describe('UserProfilePage', () => {
         phone: '+61400000000',
         location: { city: 'Sydney', state: 'NSW' }
       },
+      isAuthenticated: true,
       updateProfile: jest.fn(),
     })
     
@@ -242,7 +264,7 @@ describe('UserProfilePage', () => {
   test('handles user without profile picture', () => {
     mockUseAuthStore.default.mockReturnValue({
       user: {
-        _id: '123',
+        id: '123',
         name: 'John Doe',
         email: 'john@example.com',
         profile_picture: null,
@@ -250,6 +272,7 @@ describe('UserProfilePage', () => {
         phone: null,
         location: null
       },
+      isAuthenticated: true,
       updateProfile: jest.fn(),
     })
     
@@ -273,7 +296,7 @@ describe('UserProfilePage', () => {
     
     mockUseAuthStore.default.mockReturnValue({
       user: {
-        _id: '123',
+        id: '123',
         name: 'John Doe',
         email: 'john@example.com',
         profile_picture: null,
@@ -281,6 +304,7 @@ describe('UserProfilePage', () => {
         phone: '+61400000000',
         location: { city: 'Sydney', state: 'NSW' }
       },
+      isAuthenticated: true,
       updateProfile: mockUpdateProfile,
     })
     
