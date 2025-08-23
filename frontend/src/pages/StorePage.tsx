@@ -1,29 +1,37 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStoreStore } from '../stores/useStoreStore';
 import useCartStore from '../stores/useCartStore';
+import useAuthStore from '../stores/useAuthStore';
 import { Product } from '../types/store';
 import ProductGrid from '../components/organisms/ProductGrid';
 import ShoppingCart from '../components/molecules/ShoppingCart';
-import CartIcon from '../components/atoms/CartIcon';
+import StoreHero from '../components/organisms/StoreHero';
+import Breadcrumb from '../components/molecules/Breadcrumb';
+import StatsSection from '../components/organisms/StatsSection';
+import { ProductGridSkeleton } from '../components/molecules/ProductCardSkeleton';
 import { useToast } from '../components/ui/use-toast';
+import CartIcon from '../components/atoms/CartIcon';
 
 const StorePage: React.FC = () => {
+    const navigate = useNavigate();
     const { products, isLoading, error, setProducts, setLoading, setError } = useStoreStore();
     const { addItem } = useCartStore();
+    const { user } = useAuthStore();
     const [sortBy, setSortBy] = useState<'price' | 'name' | 'deliveryTime'>('price');
     const [filters, setFilters] = useState({});
+    const [activeCategory, setActiveCategory] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const { toast } = useToast();
     
     const handleProductSelect = (product: Product) => {
-        if (product.price === 0) {
-            // For free services, show toast and redirect directly to the service
-            toast({
-                title: "🎯 Free Analysis Started!",
-                description: `${product.name} is ready for you. Let's get started!`,
-                duration: 4000,
-            });
+        if (product.price === 0 && product.id === 'ai-resume-review') {
+            // For free AI resume review, navigate to resume upload page
+            navigate('/resume-upload');
+        } else if (product.price === 0) {
+            // For other free services, just log for now
             console.log('Redirecting to free service:', product.id);
-            // This would typically navigate to a service page
         } else {
             // Add paid services to cart
             addItem(product);
@@ -34,6 +42,37 @@ const StorePage: React.FC = () => {
             });
         }
     };
+
+    // Filter products based on category and search query
+    useEffect(() => {
+        let filtered = products;
+        
+        // Filter by category
+        if (activeCategory !== 'all') {
+            filtered = filtered.filter(product => product.category === activeCategory);
+        }
+        
+        // Filter by search query
+        if (searchQuery.trim()) {
+            filtered = filtered.filter(product =>
+                product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                product.features.some(feature => 
+                    feature.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+            );
+        }
+        
+        setFilteredProducts(filtered);
+    }, [products, activeCategory, searchQuery]);
+
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+    };
+
+    // const handleCategoryChange = (category: string) => {
+    //     setActiveCategory(category);
+    // };
 
     useEffect(() => {
         // Initialize with hardcoded products for now
@@ -165,11 +204,45 @@ const StorePage: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading store...</p>
+            <div className="min-h-screen bg-main-white-bg">
+                <div className="max-w-7xl mx-auto">
+                    {/* Breadcrumb skeleton */}
+                    <div className="py-4 px-6">
+                        <div className="h-4 bg-muted rounded w-40 animate-pulse"></div>
+                    </div>
+                    
+                    {/* Hero skeleton */}
+                    <div className="py-16 px-6">
+                        <div className="max-w-4xl mx-auto text-center space-y-4">
+                            <div className="h-10 bg-muted rounded w-64 mx-auto animate-pulse"></div>
+                            <div className="h-6 bg-muted rounded w-96 mx-auto animate-pulse"></div>
+                            <div className="h-12 bg-muted rounded-lg w-80 mx-auto animate-pulse"></div>
+                        </div>
+                    </div>
+                    
+                    {/* Category navigation skeleton */}
+                    <div className="flex justify-center gap-2 py-6 px-6">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="h-12 bg-muted rounded-full w-24 animate-pulse"></div>
+                        ))}
+                    </div>
+                    
+                    {/* Stats skeleton */}
+                    <div className="py-12 px-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="bg-card p-6 rounded-lg border border-navbar-border">
+                                    <div className="h-8 bg-muted rounded w-16 mx-auto mb-2 animate-pulse"></div>
+                                    <div className="h-5 bg-muted rounded w-24 mx-auto mb-1 animate-pulse"></div>
+                                    <div className="h-4 bg-muted rounded w-32 mx-auto animate-pulse"></div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Product grid skeleton */}
+                    <div className="px-6 pb-12">
+                        <ProductGridSkeleton />
                     </div>
                 </div>
             </div>
@@ -178,53 +251,119 @@ const StorePage: React.FC = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div className="text-center">
-                        <p className="text-red-600">Error: {error}</p>
+            <div className="min-h-screen bg-main-white-bg">
+                <div className="max-w-7xl mx-auto px-6 py-16">
+                    <div className="text-center max-w-md mx-auto">
+                        <div className="text-destructive mb-4">
+                            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-semibold text-main-text mb-2">Something went wrong</h2>
+                        <p className="text-searchbar-text mb-6">{error}</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="bg-pill-text text-white px-6 py-3 rounded-lg hover:bg-pill-text/90 transition-colors"
+                        >
+                            Try Again
+                        </button>
                     </div>
                 </div>
             </div>
         );
     }
 
+    const breadcrumbItems = [
+        { label: 'Home', path: '/' },
+        { label: 'Services', path: '/services' },
+        { label: 'Store' }
+    ];
+
     return (
         <div className="min-h-screen bg-main-white-bg">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Header */}
-                <div className="text-center mb-12 px-6 py-4">
-                    <h1 className="text-4xl font-bold text-main-text mb-4">
-                        🚀 Boost Your Career
-                    </h1>
-                    <h2 className="text-2xl font-semibold text-searchbar-text mb-6">
-                        AI-Powered & Professional Resume Services
-                    </h2>
-                    <p className="text-[16px] text-searchbar-text max-w-3xl mx-auto leading-relaxed">
-                        Transform your job search with our comprehensive suite of resume services. 
-                        From instant AI analysis to expert professional review, we've got everything you need to stand out.
-                    </p>
+            {/* Skip Link */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 bg-pill-text text-white px-4 py-2 rounded-lg z-50 focus-visible:ring-2 focus-visible:ring-white"
+            >
+                Skip to main content
+            </a>
+            
+            <div className="max-w-7xl mx-auto">
+                {/* Breadcrumb Navigation */}
+                <Breadcrumb items={breadcrumbItems} />
+                
+                {/* Hero Section */}
+                <StoreHero onSearch={handleSearch} />
+                
+                {/* Category Navigation */}
+                {/* <div className="px-4 sm:px-6">
+                    <CategoryNavigation 
+                        activeCategory={activeCategory}
+                        onCategoryChange={handleCategoryChange}
+                    />
+                </div> */}
+                
+                {/* Stats Section */}
+                <div className="-mt-16">
+                    <StatsSection />
                 </div>
-
-                {/* Product Grid with enhanced functionality */}
-                <ProductGrid
-                    products={products}
-                    filters={filters}
-                    sortBy={sortBy}
-                    onProductSelect={handleProductSelect}
-                    onFiltersChange={setFilters}
-                    onSortChange={setSortBy}
-                    showComparison={true}
-                    featuredProductIds={['ai-resume-review', 'professional-package']}
-                />
+                
+                {/* Results Count */}
+                {searchQuery && (
+                    <div className="px-4 sm:px-6 mb-4">
+                        <p className="text-sm text-searchbar-text">
+                            {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''} found for "{searchQuery}"
+                        </p>
+                    </div>
+                )}
+                
+                {/* Product Grid */}
+                <main id="main-content" className="px-4 sm:px-6 pb-12" role="main" aria-label="Service listings">
+                    {filteredProducts.length > 0 ? (
+                        <ProductGrid
+                            products={filteredProducts}
+                            filters={filters}
+                            sortBy={sortBy}
+                            onProductSelect={handleProductSelect}
+                            onFiltersChange={setFilters}
+                            onSortChange={setSortBy}
+                            showComparison={false}
+                            featuredProductIds={['ai-resume-review', 'professional-package']}
+                            user={user}
+                        />
+                    ) : (
+                        <div className="text-center py-16">
+                            <div className="text-searchbar-text mb-4">
+                                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-semibold text-main-text mb-2">No services found</h3>
+                            <p className="text-searchbar-text mb-6">
+                                {searchQuery ? `No services match "${searchQuery}"` : 'No services available in this category'}
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setSearchQuery('');
+                                    setActiveCategory('all');
+                                }}
+                                className="bg-pill-text text-white px-6 py-3 rounded-lg hover:bg-pill-text/90 transition-colors"
+                            >
+                                Show All Services
+                            </button>
+                        </div>
+                    )}
+                </main>
             </div>
             
-            {/* Shopping Cart */}
+            {/* Floating Cart Button - Positioned near toast area */}
+            <div className="fixed top-4 right-4 z-50">
+                <CartIcon size="lg" />
+            </div>
+            
+            {/* Shopping Cart - Keep existing functionality */}
             <ShoppingCart />
-            
-            {/* Fixed Floating Cart Icon for better visibility */}
-            <div className="fixed bottom-6 right-6 z-50">
-                <CartIcon />
-            </div>
         </div>
     );
 };

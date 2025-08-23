@@ -49,6 +49,7 @@ export interface User {
     created_at?: string;
     last_login?: string;
     is_active?: boolean;
+    resume_tokens?: number;
 }
 
 export interface AuthState {

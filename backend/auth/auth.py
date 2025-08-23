@@ -184,6 +184,7 @@ def login_user():
             "role": updated_user.get("role", "job_seeker"),
             "email_verified": updated_user.get("email_verified", False),
             "profile": updated_user.get("profile", {}),
+            "resume_tokens": updated_user.get("resume_tokens", 1),
             "oauth_accounts": {
                 provider: {
                     "connected_at": account.get("connected_at"),
@@ -277,6 +278,7 @@ def register_user():
             "password": hashed_password,
             "role": role,
             "email_verified": False,  # For future email verification
+            "resume_tokens": 1,  # Start with 1 free AI resume review token
             "created_at": now,
             "updated_at": now
         }
@@ -300,7 +302,8 @@ def register_user():
             "role": role,
             "email_verified": False,
             "profile": {},  # Empty profile for new users
-            "oauth_accounts": {}
+            "oauth_accounts": {},
+            "resume_tokens": 1  # Start with 1 free token
         }
         
         try:
@@ -375,7 +378,8 @@ def get_current_user():
             "updated_at": user.get("updated_at"),
             "last_login": user.get("last_login"),
             "is_active": user.get("is_active", True),
-            "profileImage": user.get("profileImage")  # Include uploaded profile image
+            "profileImage": user.get("profileImage"),  # Include uploaded profile image
+            "resume_tokens": user.get("resume_tokens", 1)  # Include resume tokens
         }
         
         # Add profile information if available
@@ -453,6 +457,7 @@ def find_or_create_oauth_user(email, name, provider, provider_id, oauth_data=Non
                     role=existing_user.get("role", "job_seeker"),
                     email_verified=existing_user.get("email_verified", True if email else False),
                     email_placeholder=existing_user.get("email_placeholder", not bool(email)),
+                    resume_tokens=existing_user.get("resume_tokens", 1),  # Ensure tokens are preserved/initialized
                     created_at=existing_user.get("created_at", datetime.utcnow()),
                     updated_at=datetime.utcnow()
                 )
@@ -1706,7 +1711,8 @@ def verify_two_factor_login():
                 "name": user.get("name", ""),
                 "role": user.get("role", "job_seeker"),
                 "email_verified": user.get("email_verified", False),
-                "two_factor_enabled": True
+                "two_factor_enabled": True,
+                "resume_tokens": user.get("resume_tokens", 1)
             }
             
             # Create JWT token pair

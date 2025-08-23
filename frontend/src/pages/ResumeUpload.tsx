@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ResumePreview from "../components/molecules/ResumePreview";
 import { ResumeRenameModal } from "../components/molecules/ResumeRenameModal";
+import StorePromotionalBanner from "../components/molecules/StorePromotionalBanner";
 import useResumeStore from "@/stores/useResumeStore";
 import useAuthStore from "@/stores/useAuthStore";
 import { useToast } from "@/components/ui/use-toast";
@@ -23,7 +24,7 @@ export default function CVAnalysisPage() {
   const [triggerAnalysis, setTriggerAnalysis] = useState(false);
   
   // Authentication state
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user, setUser } = useAuthStore();
 
   // Resume store
   const {
@@ -57,8 +58,26 @@ export default function CVAnalysisPage() {
   }, [clearUploadState]);
 
   const startAnalysis = () => {
+    // Check if user has tokens
+    if (!user || (user.resume_tokens || 0) <= 0) {
+      toast({
+        title: "❌ No Analysis Tokens",
+        description: "You don't have any free analyses remaining. Please purchase more from our store.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setAnalysisState("analyzing");
     setTriggerAnalysis(true);
+    
+    // Show analysis started toast
+    toast({
+      title: "🎯 Free Analysis Started!",
+      description: "Analyzing your resume for content quality and ATS compatibility...",
+      duration: 3000,
+    });
+    
     // Reset trigger after a short delay to allow ResumePreview to detect the change
     setTimeout(() => setTriggerAnalysis(false), 100);
   };
@@ -150,6 +169,16 @@ export default function CVAnalysisPage() {
   const handleAnalysisComplete = (analysis: any) => {
     console.log("Analysis completed:", analysis);
     setAnalysisState("complete");
+    
+    // Update user's token count after successful analysis
+    if (user && setUser) {
+      const updatedUser = {
+        ...user,
+        resume_tokens: Math.max(0, (user.resume_tokens || 0) - 1)
+      };
+      setUser(updatedUser);
+    }
+    
     toast({
       title: "Analysis complete",
       description: `Resume analyzed successfully with a score of ${analysis.score}/100`,
@@ -181,7 +210,29 @@ export default function CVAnalysisPage() {
       
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Resume Analysis</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Resume Analysis</h1>
+            {user && (
+              <div className="flex items-center space-x-2">
+                <div className="text-sm text-gray-600">
+                  Free analyses remaining:
+                </div>
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                  {user.resume_tokens || 0}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Promotional Banner - Show when user has low or no tokens */}
+          {user && (user.resume_tokens || 0) <= 2 && (
+            <div className="mb-8">
+              <StorePromotionalBanner 
+                variant={user.resume_tokens === 0 ? "full" : "compact"}
+                className="mb-4"
+              />
+            </div>
+          )}
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Upload Section */}
@@ -252,12 +303,23 @@ export default function CVAnalysisPage() {
                       </div>
 
                       {analysisState === "idle" && (
-                        <Button
-                          onClick={startAnalysis}
-                          className="w-full"
-                        >
-                          Start Analysis
-                        </Button>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={startAnalysis}
+                            disabled={!user || (user.resume_tokens || 0) <= 0}
+                            className="w-full"
+                          >
+                            {!user || (user.resume_tokens || 0) <= 0 
+                              ? "No Analysis Tokens Remaining" 
+                              : "Start Analysis"
+                            }
+                          </Button>
+                          {user && (user.resume_tokens || 0) <= 0 && (
+                            <p className="text-xs text-gray-500 text-center">
+                              Purchase analysis tokens from our store to continue
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -345,6 +407,21 @@ export default function CVAnalysisPage() {
               />
             </div>
           </div>
+
+          {/* Bottom Promotional Section - Always show for authenticated users */}
+          {user && (user.resume_tokens || 0) > 2 && (
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  Want Professional Feedback?
+                </h2>
+                <p className="text-gray-600">
+                  Take your resume to the next level with expert reviews and professional writing services.
+                </p>
+              </div>
+              <StorePromotionalBanner variant="full" />
+            </div>
+          )}
         </div>
       </main>
 

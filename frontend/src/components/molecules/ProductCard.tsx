@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Product } from '../../types/store';
+import { Product, User } from '../../types/store';
 import PriceTag from '../atoms/PriceTag';
 import { CheckCircle, Clock } from 'lucide-react';
 
@@ -12,6 +12,7 @@ interface ProductCardProps {
   featured?: boolean;
   showSavings?: boolean;
   className?: string;
+  user?: User | null;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -21,6 +22,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   featured = false,
   showSavings = true,
   className = '',
+  user = null,
 }) => {
   const handleAddToCart = () => {
     onAddToCart(product);
@@ -58,12 +60,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="bg-pill-bg text-pill-text px-[20px] py-[10px] rounded-full text-xs font-medium">
             {getCategoryIcon(product.category)} {getCategoryLabel(product.category)}
           </div>
-          <PriceTag 
-            amount={product.price} 
-            currency={product.currency}
-            strikethrough={product.originalPrice}
-            savings={showSavings ? product.savings : undefined}
-          />
+          <div className="flex flex-col items-end space-y-1">
+            <PriceTag 
+              amount={product.price} 
+              currency={product.currency}
+              strikethrough={product.originalPrice}
+              savings={showSavings ? product.savings : undefined}
+            />
+            {/* Token counter for free AI resume service */}
+            {product.id === 'ai-resume-review' && product.price === 0 && user && (
+              <div className="text-xs text-searchbar-text bg-gray-50 px-2 py-1 rounded-full border">
+                {user.resume_tokens || 0}/1 available
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Enhanced title with better typography */}

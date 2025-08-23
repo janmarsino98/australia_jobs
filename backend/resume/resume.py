@@ -284,6 +284,11 @@ def analyze_current_resume():
     if not user:
         return jsonify({"error": "User not found."}), 404
     
+    # Check if user has remaining resume tokens
+    resume_tokens = user.get("resume_tokens", 0)
+    if resume_tokens <= 0:
+        return jsonify({"error": "No resume analysis tokens remaining. You have used your free analysis."}), 403
+    
     user_resume_id = user.get("resume_id")
     if not user_resume_id:
         return jsonify({"message": "The current user has not uploaded a resume."}), 404
@@ -322,6 +327,13 @@ def analyze_current_resume():
             "analyzed_at": parsed_data.get("parsing_metadata", {}).get("parsed_at")
         }
         
+        # Decrement user's resume tokens after successful analysis
+        mongo.db.users.update_one(
+            {"_id": ObjectId(session.get("user_id"))},
+            {"$inc": {"resume_tokens": -1}}
+        )
+        print(f"Decremented resume tokens for user {session.get('user_id')}. Tokens remaining: {resume_tokens - 1}")
+        
         return jsonify(analysis_response), 200
         
     except Exception as e:
@@ -340,6 +352,11 @@ def analyze_resume_structured():
     user = get_current_user()
     if not user:
         return jsonify({"error": "User not found."}), 404
+    
+    # Check if user has remaining resume tokens
+    resume_tokens = user.get("resume_tokens", 0)
+    if resume_tokens <= 0:
+        return jsonify({"error": "No resume analysis tokens remaining. You have used your free analysis."}), 403
     
     user_resume_id = user.get("resume_id")
     if not user_resume_id:
@@ -454,6 +471,18 @@ def analyze_resume_structured():
         }
         
         print(f"Structured analysis complete: completeness_score={completeness_analysis.get('completeness_score', 0)}")
+        
+        # Consume one resume token
+        try:
+            user_id = session.get("user_id")
+            mongo.db.users.update_one(
+                {"_id": ObjectId(user_id)},
+                {"$inc": {"resume_tokens": -1}}  # Decrement by 1
+            )
+            print(f"Consumed 1 resume token for user {user_id}")
+        except Exception as token_error:
+            print(f"Warning: Failed to consume resume token: {token_error}")
+            # Don't fail the request if token consumption fails, but log it
         
         return jsonify(analysis_response), 200
         

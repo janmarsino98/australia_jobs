@@ -65,6 +65,7 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
+                                resume_tokens: userData.resume_tokens,
                                 // Use uploaded profile image if available, otherwise use LinkedIn profile picture
                                 profileImage: userData.profileImage || userData.profile?.profile_picture
                             },
@@ -103,6 +104,7 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
+                                resume_tokens: userData.resume_tokens,
                                 // Use uploaded profile image if available, otherwise use LinkedIn profile picture
                                 profileImage: userData.profileImage || userData.profile?.profile_picture
                             },
@@ -141,6 +143,7 @@ const useAuthStore = create<AuthState>()(
                                 created_at: userData.created_at,
                                 last_login: userData.last_login,
                                 is_active: userData.is_active,
+                                resume_tokens: userData.resume_tokens,
                                 // Use uploaded profile image if available, otherwise use LinkedIn profile picture
                                 profileImage: userData.profileImage || userData.profile?.profile_picture
                             },

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product } from '../../types/store';
+import { Product, User } from '../../types/store';
 import ProductCard from '../molecules/ProductCard';
 import ServiceComparison from '../molecules/ServiceComparison';
 import { Button } from '../ui/button';
@@ -23,6 +23,7 @@ interface ProductGridProps {
   showComparison?: boolean;
   featuredProductIds?: string[];
   className?: string;
+  user?: User | null;
 }
 
 type ViewMode = 'grid' | 'comparison';
@@ -37,6 +38,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   showComparison = true,
   featuredProductIds = [],
   className = '',
+  user = null,
 }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -251,6 +253,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   onAddToCart={onProductSelect}
                   featured={featuredProductIds.includes(product.id)}
                   showSavings={true}
+                  user={user}
                 />
               ))}
             </div>

@@ -106,6 +106,9 @@ class User(BaseModel):
     is_active: bool = Field(True, description="Whether user account is active")
     is_verified: bool = Field(False, description="Whether user profile is verified")
     
+    # Resume service tokens
+    resume_tokens: int = Field(1, description="Available free AI resume review tokens")
+    
     @validator('name')
     def validate_name(cls, v):
         if not v or not v.strip():
