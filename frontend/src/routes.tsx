@@ -35,6 +35,7 @@ import VlogPage from "./pages/VlogPage";
 import TechBlogPage from "./pages/TechBlogPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import StorePage from "./pages/StorePage";
+import AdminDatabaseManagement from "./pages/AdminDatabaseManagement";
 import { Outlet } from "react-router-dom";
 
 
@@ -267,6 +268,10 @@ const routes = createBrowserRouter([
           {
             path: "jobs",
             element: <JobsPage />,
+          },
+          {
+            path: "database",
+            element: <AdminDatabaseManagement />,
           },
         ],
       },

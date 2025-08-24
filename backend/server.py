@@ -69,6 +69,7 @@ def create_app():
     from notification_preferences import notification_preferences_bp
     from recommendations.recommendations import recommendations_bp
     from analytics.analytics import analytics_bp
+    from admin.admin import admin_bp
     
     # Initialize OAuth
     try:
@@ -97,6 +98,9 @@ def create_app():
     print("Registering analytics blueprint...")
     app.register_blueprint(analytics_bp, url_prefix='/analytics')
     print(f"Analytics blueprint registered with routes: {[rule.rule for rule in app.url_map.iter_rules() if 'analytics' in rule.rule]}")
+    print("Registering admin blueprint...")
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    print(f"Admin blueprint registered with routes: {[rule.rule for rule in app.url_map.iter_rules() if 'admin' in rule.rule]}")
 
     return app
 

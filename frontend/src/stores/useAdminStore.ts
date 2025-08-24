@@ -49,10 +49,31 @@ export interface SystemStats {
   conversionRate: number;
 }
 
+export interface DatabaseSummary {
+  users_by_role: Record<string, number>;
+  total_users: number;
+  job_applications: number;
+  saved_jobs: number;
+  user_preferences: number;
+  user_experience: number;
+  user_education: number;
+  resume_metadata: number;
+  gridfs_files: number;
+}
+
+export interface DatabaseOperationResult {
+  success: boolean;
+  message: string;
+  deleted_collections: Record<string, number>;
+  total_deleted: number;
+  timestamp: string;
+}
+
 interface AdminState {
   users: AdminUser[];
   jobs: AdminJob[];
   systemStats: SystemStats | null;
+  databaseSummary: DatabaseSummary | null;
   selectedUser: AdminUser | null;
   selectedJob: AdminJob | null;
   isLoading: boolean;
@@ -80,6 +101,11 @@ interface AdminState {
   exportUserData: (format: 'csv' | 'json') => Promise<string>;
   exportJobData: (format: 'csv' | 'json') => Promise<string>;
   
+  // Database Management
+  fetchDatabaseSummary: () => Promise<void>;
+  clearAllUsers: () => Promise<DatabaseOperationResult>;
+  clearSpecificUser: (userId: string) => Promise<DatabaseOperationResult>;
+  
   // Local state management
   setSelectedUser: (user: AdminUser | null) => void;
   setSelectedJob: (job: AdminJob | null) => void;
@@ -90,6 +116,7 @@ const useAdminStore = create<AdminState>()((set, _get) => ({
   users: [],
   jobs: [],
   systemStats: null,
+  databaseSummary: null,
   selectedUser: null,
   selectedJob: null,
   isLoading: false,
@@ -99,10 +126,21 @@ const useAdminStore = create<AdminState>()((set, _get) => ({
   fetchUsers: async (page = 1, limit = 50, filters = {}) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await httpClient.get(buildApiUrl('/admin/users'), {
+      const response = await httpClient.get(buildApiUrl('/admin/users-list'), {
         params: { page, limit, ...filters }
       });
-      const users = response.data.users || [];
+      const rawUsers = response.data.users || [];
+      // Map backend fields to frontend interface
+      const users = rawUsers.map((user: any) => ({
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role || 'user',
+        isActive: user.is_active !== false,
+        emailVerified: user.email_verified || false,
+        createdAt: user.created_at,
+        lastLogin: user.last_login
+      }));
       set({ users, isLoading: false });
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
@@ -356,6 +394,73 @@ const useAdminStore = create<AdminState>()((set, _get) => ({
       console.error('Failed to export job data:', error);
       set({ error: error.response?.data?.message || 'Failed to export job data' });
       throw error;
+    }
+  },
+
+  // Database management methods
+  fetchDatabaseSummary: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await httpClient.get(buildApiUrl('/admin/users-summary'));
+      const summary = response.data.summary;
+      set({ databaseSummary: summary, isLoading: false });
+    } catch (error: any) {
+      console.error('Failed to fetch database summary:', error);
+      set({ 
+        error: error.response?.data?.message || 'Failed to fetch database summary',
+        isLoading: false 
+      });
+    }
+  },
+
+  clearAllUsers: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await httpClient.post(buildApiUrl('/admin/clear-all-users'));
+      const result: DatabaseOperationResult = response.data;
+      
+      // Clear local state since all users are deleted
+      set({ 
+        users: [],
+        databaseSummary: null,
+        selectedUser: null,
+        isLoading: false 
+      });
+      
+      return result;
+    } catch (error: any) {
+      console.error('Failed to clear all users:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to clear all users';
+      set({ 
+        error: errorMessage,
+        isLoading: false 
+      });
+      throw new Error(errorMessage);
+    }
+  },
+
+  clearSpecificUser: async (userId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await httpClient.post(buildApiUrl(`/admin/clear-user/${userId}`));
+      const result: DatabaseOperationResult = response.data;
+      
+      // Remove user from local state
+      set((state) => ({
+        users: state.users.filter(user => user.id !== userId),
+        selectedUser: state.selectedUser?.id === userId ? null : state.selectedUser,
+        isLoading: false
+      }));
+      
+      return result;
+    } catch (error: any) {
+      console.error('Failed to clear specific user:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to clear specific user';
+      set({ 
+        error: errorMessage,
+        isLoading: false 
+      });
+      throw new Error(errorMessage);
     }
   },
 
